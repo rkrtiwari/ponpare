@@ -64,12 +64,12 @@ plt.hist(user_list.AGE, bins);
 # 2. Gender
 gender_data = user_list.SEX_ID.value_counts()
 xval = np.arange(2)
-plt.bar(xval, gender_data, tick_label = ['M', 'F'])
+plt.bar(xval, gender_data, tick_label = ['M', 'F']);
 
 # 3. residence data
 resid_data = user_list.PREF_NAME.value_counts(sort = True)
 xval = np.arange(10)
-plt.bar(xval, resid_data[:10])
+plt.bar(xval, resid_data[:10]);
 
 for name in resid_data.index[:10]:
     print(name)
@@ -143,19 +143,19 @@ genre_count
 coupon_list_train.PRICE_RATE
 bins = np.arange(0,100,10)
 plt.hist(coupon_list_train.PRICE_RATE)
-plt.hist(coupon_list_train.PRICE_RATE, normed = True)
+plt.hist(coupon_list_train.PRICE_RATE, normed = True);
 
 #  3. catalogue price
 coupon_list_train.CATALOG_PRICE
 plt.hist(coupon_list_train.CATALOG_PRICE)
 plt.hist(coupon_list_train.CATALOG_PRICE, normed = True, log = True)
 plt.hist(coupon_list_train.CATALOG_PRICE, log = True)
-plt.hist(coupon_list_train.CATALOG_PRICE)
+plt.hist(coupon_list_train.CATALOG_PRICE);
 
 # 4. discount price
 coupon_list_train.DISCOUNT_PRICE
 plt.hist(coupon_list_train.DISCOUNT_PRICE, log = True)
-plt.hist(coupon_list_train.DISCOUNT_PRICE) 
+plt.hist(coupon_list_train.DISCOUNT_PRICE);
 
 # 5. discount period
 coupon_list_train.VALIDPERIOD 
@@ -196,6 +196,51 @@ f_genre.value_counts()
 ind = purchase_clist_ulist.SEX_ID == 'm'
 m_genre = purchase_clist_ulist.GENRE_NAME.loc[ind]
 m_genre.value_counts()
+
+###############################################################################
+purchase_clist_ulist.shape
+purchase_clist_ulist.head()
+
+purchase_clist_ulist.SEX_ID.value_counts()
+purchase_clist_ulist.columns
+user_list.columns
+
+###############################################################################
+###############################################################################
+# function to create translation
+###############################################################################
+###############################################################################
+
+
+
+###############################################################################
+###############################################################################
+# writing functions to calculate probabilities
+###############################################################################
+###############################################################################
+
+prob = {}
+
+user_list.columns
+i_column = 4
+user_list.columns[i_column]
+
+gen_prob = user_list.iloc[:,i_column].value_counts()/len(user_list)
+prob[user_list.columns[i_column]] = gen_prob.to_dict()
+
+for key, value in prob['SEX_ID'].items():
+    print key, value
+
+for key, value in prob['PREF_NAME'].items():
+    print key, value
+    
+
+
+
+
+
+
+
 
 
 
