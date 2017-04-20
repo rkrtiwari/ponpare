@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime
+from scipy.stats import norm
 from __future__ import division
 
 ###############################################################################
@@ -215,7 +216,7 @@ user_list.columns
 
 ###############################################################################
 ###############################################################################
-# writing functions to calculate probabilities
+# writing functions to calculate probabilities: part 1
 ###############################################################################
 ###############################################################################
 
@@ -234,8 +235,21 @@ for key, value in prob['SEX_ID'].items():
 for key, value in prob['PREF_NAME'].items():
     print key, value
     
+###############################################################################
+###############################################################################
+# writing functions to calculate continuous probabilities 
+###############################################################################
+###############################################################################
+user_list.columns
+plt.hist(user_list.AGE, bins = 20)
+mu, std = norm.fit(user_list.AGE)
 
-
+plt.hist(user_list.AGE, bins=25, normed=True, alpha=0.6, color='g')
+xmin, xmax = plt.xlim()
+x = np.linspace(xmin, xmax, 100)
+p = norm.pdf(x, mu, std)
+plt.plot(x, p, 'k', linewidth=2)
+plt.show()
 
 
 
