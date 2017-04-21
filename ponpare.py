@@ -320,12 +320,50 @@ pd.cut(user_list.AGE, bins = [0,10,20,30,40,50,60,70,100], labels = variables)
 user_list["age_group"] = pd.cut(user_list.AGE, bins = 
          [0,10,20,30,40,50,60,70,100], labels = variables)
 
-
+###############################################################################
+# Deciding splitting range
+###############################################################################
+coupon_purchase.head()
+coupon_list_train.head()
 
       
+###############################################################################
+#
+###############################################################################
+user_beh.head()
+pur_ind = user_beh.PURCHASE_FLG == 1
+user_purchased_coupon = user_beh[["USER_ID_hash", "VIEW_COUPON_ID_hash"]][pur_ind]
+i = 1
+ith_user = user_purchased_coupon.iloc[i]
+ith_user.USER_ID_hash
+ith_user.VIEW_COUPON_ID_hash
+
+ind = ((user_beh.USER_ID_hash == ith_user.USER_ID_hash) & 
+      (user_beh.VIEW_COUPON_ID_hash == ith_user.VIEW_COUPON_ID_hash))
+
+user_beh[ind]
+ith_user
+
+grouped = user_beh.groupby(['USER_ID_hash', 'VIEW_COUPON_ID_hash'])
+grouped.index
+grouped.first()
+
+ind = user_beh.USER_ID_hash == ith_user.USER_ID_hash
+sum(ind)
+user_beh[ind]
+ith_user_data = user_beh[['PURCHASE_FLG', 'I_DATE', 'USER_ID_hash', 'VIEW_COUPON_ID_hash']][ind]
+user_beh[['PURCHASE_FLG', 'I_DATE', 'VIEW_COUPON_ID_hash']][ind]
+user_beh[['PURCHASE_FLG', 'USER_ID_hash', 'VIEW_COUPON_ID_hash']][ind]
+user_beh[ind].PURCHASE_FLG
+user_beh.PURCHASE_FLG[ind]
 
 
-
+##############################################################################
+#
+###############################################################################
+purchase_clist_ulist.columns
+ind = ((purchase_clist_ulist.USER_ID_hash == ith_user.USER_ID_hash) & 
+      (purchase_clist_ulist.VIEW_COUPON_ID_hash == ith_user.VIEW_COUPON_ID_hash))
 
 
 
