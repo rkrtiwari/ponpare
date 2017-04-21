@@ -271,6 +271,7 @@ purchase_clist_ulist[req_columns]
 
 joint_prob = {}
 genres = purchase_clist_ulist.GENRE_NAME.unique()
+genders = purchase_clist_ulist.SEX_ID.unique()
 for genre in genres:
     ind = (purchase_clist_ulist.GENRE_NAME == genre)
     probs = purchase_clist_ulist.SEX_ID[ind].value_counts()/sum(ind)
@@ -279,6 +280,46 @@ for genre in genres:
 for key in joint_prob.keys():
     for subkey, value in joint_prob[key].items():
         print key, subkey, value
+        
+###############################################################################
+###############################################################################
+# multiple joint probabilities
+###############################################################################
+###############################################################################
+nested_joint_prob = {}
+coupon_cols = ["GENRE_NAME", "SMALL_AREA_NAME"]
+user_cols = ["SEX_ID", "small_area_name"]
+for ccol in coupon_cols:
+    c_variables = purchase_clist_ulist[ccol].unique()
+    nested_joint_prob[ccol] = {}
+    for ucol in user_cols:
+        nested_joint_prob[ccol][ucol] = {}
+        for variable in c_variables:
+            ind = (purchase_clist_ulist[ccol] == variable)
+            probs = purchase_clist_ulist[ucol][ind].value_counts()/sum(ind)
+            nested_joint_prob[ccol][ucol][variable] = probs.to_dict()
+            
+        
+for key in nested_joint_prob["GENRE_NAME"]["SEX_ID"].keys():
+    for subkey, value in nested_joint_prob["GENRE_NAME"]["SEX_ID"][key].items():
+        print key, subkey, value
+
+
+                
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
