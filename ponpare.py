@@ -301,14 +301,28 @@ for ccol in coupon_cols:
             
         
 for key in nested_joint_prob["GENRE_NAME"]["SEX_ID"].keys():
-    for subkey, value in nested_joint_prob["GENRE_NAME"]["SEX_ID"][key].items():
+    for subkey, value in nested_joint_prob["GENRE_NAME"]["small_area_name"][key].items():
         print key, subkey, value
 
 
-                
+nested_joint_prob["GENRE_NAME"]["SEX_ID"]["健康・医療"]                
+
+###############################################################################
+# Creating discrete variable
+###############################################################################
+user_list.head()
+
+variable = "age"
+numbers = range(8)
+variables = [variable + str(number) for number in numbers]
+
+pd.cut(user_list.AGE, bins = [0,10,20,30,40,50,60,70,100], labels = variables)
+user_list["age_group"] = pd.cut(user_list.AGE, bins = 
+         [0,10,20,30,40,50,60,70,100], labels = variables)
 
 
 
+      
 
 
 
