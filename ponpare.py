@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime
-from scipy.stats import norm
+from scipy.stats import norm, beta
 from __future__ import division
 
 ###############################################################################
@@ -23,14 +23,14 @@ os.getcwd()
 files = os.listdir(".")
 
 ###############################################################################
-# creating directory if it does not exists
+# creating directory if it does not exists (RUN IT ONLY ONCE)
 ###############################################################################
 data_dir = "data"
 if not os.path.exists(data_dir):
     os.makedirs(data_dir)
 
 ###############################################################################
-# unzipping the file
+# unzipping the file (RUN IT ONLY ONCE)
 ###############################################################################
 files = os.listdir(".")
 
@@ -216,28 +216,32 @@ user_list.columns
 
 ###############################################################################
 ###############################################################################
-# writing functions to calculate probabilities: part 1
+# functions to calculate probabilities: part 1
 ###############################################################################
 ###############################################################################
 
 prob = {}
 
 user_list.columns
-i_column = 4
-user_list.columns[i_column]
 
-gen_prob = user_list.iloc[:,i_column].value_counts()/len(user_list)
-prob[user_list.columns[i_column]] = gen_prob.to_dict()
+i_columns = [1,4]
+user_list.columns[i_columns]
 
-for key, value in prob['SEX_ID'].items():
-    print key, value
+## probability generation
+for i in i_columns:
+    gen_prob = user_list.iloc[:,i].value_counts()/len(user_list)
+    prob[user_list.columns[i]] = gen_prob.to_dict()
 
-for key, value in prob['PREF_NAME'].items():
-    print key, value
+## printing probabilities
+for key in prob.keys():
+    for subkey, value in prob[key].items():
+        print key, subkey, value
+        
+
     
 ###############################################################################
 ###############################################################################
-# writing functions to calculate continuous probabilities 
+# functions to calculate continuous probabilities 
 ###############################################################################
 ###############################################################################
 user_list.columns
@@ -252,6 +256,29 @@ plt.plot(x, p, 'k', linewidth=2)
 plt.show()
 
 
+coupon_list_train.columns
+coupon_list_train.CATALOG_PRICE
+
+alpha, beta, loc, scale = beta.fit(coupon_list_train.CATALOG_PRICE)
+
+###############################################################################
+###############################################################################
+# functions to calculate joint probabilities
+###############################################################################
+###############################################################################
+req_columns = ["GENRE_NAME", "SEX_ID"]
+purchase_clist_ulist[req_columns]
+
+joint_prob = {}
+genres = purchase_clist_ulist.GENRE_NAME.unique()
+for genre in genres:
+    ind = (purchase_clist_ulist.GENRE_NAME == genre)
+    probs = purchase_clist_ulist.SEX_ID[ind].value_counts()/sum(ind)
+    joint_prob[genre] = probs.to_dict()
+    
+for key in joint_prob.keys():
+    for subkey, value in joint_prob[key].items():
+        print key, subkey, value
 
 
 
