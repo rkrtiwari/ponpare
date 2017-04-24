@@ -260,6 +260,83 @@ coupon_list_train.columns
 coupon_list_train.CATALOG_PRICE
 
 alpha, beta, loc, scale = beta.fit(coupon_list_train.CATALOG_PRICE)
+###############################################################################
+################################################################################
+###############################################################################
+# function to calculate probabilities for coupons based on purchase data
+###############################################################################
+###############################################################################
+###############################################################################
+coup_prob = {}
+
+purchase_clist_ulist.columns
+col_names = list(purchase_clist_ulist.columns)
+ind1 = col_names.index("GENRE_NAME")
+ind2 = col_names.index("SMALL_AREA_NAME")
+i_columns = [ind1,ind2]
+purchase_clist_ulist.columns[i_columns]
+
+## probability generation
+for i in i_columns:
+    gen_prob = purchase_clist_ulist.iloc[:,i].value_counts()/len(purchase_clist_ulist)
+    coup_prob[purchase_clist_ulist.columns[i]] = gen_prob.to_dict()
+
+## printing probabilities
+for key in coup_prob.keys():
+    for subkey, value in coup_prob[key].items():
+        print key, subkey, value
+
+###############################################################################
+###############################################################################
+###############################################################################
+# conditional joint probability  
+###############################################################################
+###############################################################################
+###############################################################################
+
+coupon_cols = ["GENRE_NAME"]
+user_cols = ["SEX_ID"]
+
+prob = []              
+for ccol in coupon_cols:
+    c_variables = purchase_clist_ulist[ccol].unique()
+    for ucol in user_cols:
+        u_variables = purchase_clist_ulist[ucol].unique()
+        for c_variable in c_variables:
+            ind_c = purchase_clist_ulist[ccol] == c_variable
+            for u_variable in u_variables:
+                ind_u = purchase_clist_ulist[ind_c][ucol]==u_variable
+                print c_variable, u_variable, sum(ind_u)/sum(ind_c)
+                prob.append((c_variable, u_variable, sum(ind_u)/sum(ind_c)))
+        
+            
+        
+    
+    
+                
+              
+        
+for ccol in coupon_cols:
+    c_variables = purchase_clist_ulist[ccol].unique()
+    nested_joint_prob[ccol] = {}
+    for ucol in user_cols:
+        nested_joint_prob[ccol][ucol] = {}
+        for variable in c_variables:
+            ind = (purchase_clist_ulist[ccol] == variable)
+            probs = purchase_clist_ulist[ucol][ind].value_counts()/sum(ind)
+            nested_joint_prob[ccol][ucol][variable] = probs.to_dict()
+            
+        
+for key in nested_joint_prob["GENRE_NAME"]["SEX_ID"].keys():
+    for subkey, value in nested_joint_prob["GENRE_NAME"]["small_area_name"][key].items():
+        print key, subkey, value
+
+
+nested_joint_prob["GENRE_NAME"]["SEX_ID"]["健康・医療"]              
+
+
+
+
 
 ###############################################################################
 ###############################################################################
@@ -280,6 +357,11 @@ for genre in genres:
 for key in joint_prob.keys():
     for subkey, value in joint_prob[key].items():
         print key, subkey, value
+
+
+
+
+
         
 ###############################################################################
 ###############################################################################
