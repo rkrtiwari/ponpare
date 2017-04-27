@@ -121,6 +121,15 @@ len(user_beh.USER_ID_hash.unique())
 user_beh.size
 user_beh.shape
 
+user_beh.columns
+user_beh.to_pickle("user_behavior.pkl")
+user_beh.sort_values(by = ["USER_ID_hash","VIEW_COUPON_ID_hash"], axis = 0, inplace = True)
+user_beh.to_csv("user_behavior.csv")
+user_beh.drop_duplicates(subset = ["USER_ID_hash","VIEW_COUPON_ID_hash"], 
+                         keep = 'last', inplace = True)
+
+
+
 ###############################################################################
 # Coupon list (description)
 ###############################################################################
@@ -186,6 +195,25 @@ user_list.head()
 purchase_clist = coupon_purchase.merge(coupon_list_train, how = "left", on = 'COUPON_ID_hash')
 purchase_clist_ulist = purchase_clist.merge(user_list, how = "left", on = "USER_ID_hash")
 purchase_clist_ulist.shape
+
+
+# 1a. saving the dataframe for future use
+type(purchase_clist_ulist)
+purchase_clist_ulist.to_pickle("ponpare_user_purchase.pkl")
+user_purchase = pd.read_pickle("ponpare_user_purchase.pkl")
+
+
+# 1b. merging user behavior table
+user_beh.columns
+coupon_list_train.columns
+user_list.columns
+
+user_coupon = user_beh.merge(coupon_list_train, how = "left",
+                                    left_on = 'VIEW_COUPON_ID_hash', right_on =
+                                    'COUPON_ID_hash')
+user_coupon_buying = user_coupon.merge(user_list, how = "left", on = "USER_ID_hash")
+
+user_coupon_buying.to_pickle("user_coupon_buying.pkl")
 
 # 2. gender and genre relationship
 ############# female ##########################################################
@@ -294,8 +322,8 @@ for key in coup_prob.keys():
 ###############################################################################
 ###############################################################################
 
-coupon_cols = ["GENRE_NAME"]
-user_cols = ["SEX_ID"]
+coupon_cols = ["GENRE_NAME", "SMALL_AREA_NAME"]
+user_cols = ["SEX_ID", "small_area_name"]
 
 prob = []              
 for ccol in coupon_cols:
@@ -309,6 +337,9 @@ for ccol in coupon_cols:
                 print c_variable, u_variable, sum(ind_u)/sum(ind_c)
                 prob.append((c_variable, u_variable, sum(ind_u)/sum(ind_c)))
         
+my_dict = {}
+my_dict[('SEX_ID', 'GENRE_NAME')] = [('a','b',1), ('d', 'e', 5 )]
+my_dict[('SEX_ID', 'GENRE_NAME')]
             
         
     
