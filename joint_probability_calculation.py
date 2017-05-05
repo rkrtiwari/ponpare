@@ -71,7 +71,8 @@ for c_feature in c_features:
             for u_feature_value in u_feature_values:
                 u_prob =  u_value_count.loc[u_feature_value]/u_total
                 u_prob_cond = u_value_count_cond.loc[u_feature_value]/u_total_cond
-                print u_feature, u_feature_value, u_prob, u_prob_cond
+                post_prob = c_prob*u_prob_cond/u_prob
+                print c_feature, u_feature, c_feature_value, u_feature_value, post_prob
 
                 
             
