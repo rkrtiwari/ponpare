@@ -7,50 +7,26 @@ Created on Thu May 04 16:14:44 2017
 
 ###############################################################################
 ###############################################################################
-# functions to calculate probabilities: part 1
+# functions to calculate unconditional (marginal) probabilities.
+# the probability values are stored in the user_list_prob
 ###############################################################################
 ###############################################################################
 
-prob = {}
+user_list_prob = pd.DataFrame(columns = ('feature_name', 'feature_value', 'prob'))
+df = pd.DataFrame(columns = ('feature_name', 'feature_value', 'prob'))
+feature_list = ['SEX_ID', 'PREF_NAME']
 
-user_list.columns
+for feature in feature_list:
+    value_counts  = user_list[feature].value_counts()
+    total = sum(value_counts)
+    for i in range(len(value_counts)):
+        prob = value_counts[i]/total
+        df.loc[i]  = [feature, value_counts.index[i], prob]        
+    user_list_prob = user_list_prob.append(df, ignore_index = True)
 
-i_columns = [1,4]
-user_list.columns[i_columns]
-
-## probability generation
-for i in i_columns:
-    gen_prob = user_list.iloc[:,i].value_counts()/len(user_list)
-    prob[user_list.columns[i]] = gen_prob.to_dict()
-
-## printing probabilities
-for key in prob.keys():
-    for subkey, value in prob[key].items():
-        print key, subkey, value
-        
 
     
-###############################################################################
-###############################################################################
-# functions to calculate continuous probabilities 
-###############################################################################
-###############################################################################
-user_list.columns
-plt.hist(user_list.AGE, bins = 20)
-mu, std = norm.fit(user_list.AGE)
 
-plt.hist(user_list.AGE, bins=25, normed=True, alpha=0.6, color='g')
-xmin, xmax = plt.xlim()
-x = np.linspace(xmin, xmax, 100)
-p = norm.pdf(x, mu, std)
-plt.plot(x, p, 'k', linewidth=2)
-plt.show()
-
-
-coupon_list_train.columns
-coupon_list_train.CATALOG_PRICE
-
-alpha, beta, loc, scale = beta.fit(coupon_list_train.CATALOG_PRICE)
 ###############################################################################
 ################################################################################
 ###############################################################################
