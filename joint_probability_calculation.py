@@ -25,12 +25,76 @@ for feature in feature_list:
     user_list_prob = user_list_prob.append(df, ignore_index = True)
 
 
+###############################################################################
+###############################################################################
+###############################################################################
+# conditional joint probability  
+###############################################################################
+###############################################################################
+###############################################################################
+
+u_features = ["AGE", "SEX_ID"]                             # u: user
+c_features = ["GENRE_NAME", "PRICE_RATE", "CATALOG_PRICE"] # c: coupon
+
+for c_feature in c_features:
+    c_feature_values = X_cat[c_feature].unique()
+    c_value_count =  X_cat[c_feature].value_counts()
+    c_total = sum(c_value_count)
+    for c_feature_value in c_feature_values:
+        c_prob =  c_value_count.loc[c_feature_value]/c_total
+        print c_feature, c_feature_value, c_prob, c_total, c_value_count.loc[c_feature_value]
+
+
+for u_feature in u_features:
+    u_feature_values = X_cat[u_feature].unique()
+    u_value_count =  X_cat[u_feature].value_counts()
+    u_total = sum(u_value_count)
+    for u_feature_value in u_feature_values:
+        u_prob =  u_value_count.loc[u_feature_value]/u_total
+        print u_feature, u_feature_value, u_prob
+
+
+for c_feature in c_features:
+    c_feature_values = X_cat[c_feature].unique()
+    c_value_count =  X_cat[c_feature].value_counts()
+    c_total = sum(c_value_count)
+    for c_feature_value in c_feature_values:
+        c_prob =  c_value_count.loc[c_feature_value]/c_total
+        print c_feature, c_feature_value, c_prob
+        for u_feature in u_features:
+            u_feature_values = X_cat[u_feature].unique()
+            u_value_count =  X_cat[u_feature].value_counts()
+            u_total = sum(u_value_count)
+            for u_feature_value in u_feature_values:
+                u_prob =  u_value_count.loc[u_feature_value]/u_total
+                print u_feature, u_feature_value, u_prob
+                
+            
+
+
+
+
     
 
+for cfeature in coupon_feature:
+    for ufeature in user_feature:
+        print cfeature, ufeature
+        print X_cat[ufeature].value_counts()
+        print X_cat[cfeature].value_counts()
+
+
+n_u_features = len(X_cat["GENRE_NAME"].unique())
+
+for i in range(len(X_cat["GENRE_NAME"])):
+    u_value_count = X_cat["GENRE_NAME"].value_counts()
+    print u_value_count 
+
+
+    
 ###############################################################################
 ################################################################################
 ###############################################################################
-# function to calculate probabilities for coupons based on purchase data
+# function to calculate conditional probability
 ###############################################################################
 ###############################################################################
 ###############################################################################
@@ -53,16 +117,9 @@ for key in coup_prob.keys():
     for subkey, value in coup_prob[key].items():
         print key, subkey, value
 
-###############################################################################
-###############################################################################
-###############################################################################
-# conditional joint probability  
-###############################################################################
-###############################################################################
-###############################################################################
 
-coupon_cols = ["GENRE_NAME", "SMALL_AREA_NAME"]
-user_cols = ["SEX_ID", "small_area_name"]
+
+
 
 prob = []              
 for ccol in coupon_cols:
