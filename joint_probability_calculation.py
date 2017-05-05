@@ -88,3 +88,56 @@ for c_feature in c_features:
                 i += 1
                 
                 
+ind1 = coupon_cond_prob.coupon_feature == "GENRE_NAME"
+ind2 = coupon_cond_prob.user_feature == "SEX_ID"
+ind = ind1 & ind2
+coupon_cond_prob[ind]
+
+###############################################################################
+# module to test conditional probability values
+###############################################################################
+#sample_data = coupon_cond_prob.sample()
+sample_data = coupon_cond_prob.loc[6]
+
+sample_data.coupon_feature
+sample_data.user_feature
+sample_data.coupon_feature_value
+sample_data.user_feature_value
+sample_data.cond_prob
+
+# coupon feature probability
+coupon_value_count = pd.value_counts(X_cat[sample_data.coupon_feature].values.flatten())
+coupon_feature_count = coupon_value_count[sample_data.coupon_feature_value]
+coupon_total = np.sum(coupon_value_count)
+prob_coupon_feature = coupon_feature_count/coupon_total
+
+# user feature probability
+user_value_count = pd.value_counts(X_cat[sample_data.user_feature].values.flatten())
+user_feature_count = user_value_count[sample_data.user_feature_value]
+user_total = np.sum(user_value_count)
+prob_user_feature = user_feature_count/user_total
+
+# likelihood
+user_feature_count = user_value_count[sample_data.user_feature_value]
+ind1 = X_cat[sample_data.coupon_feature] == sample_data.coupon_feature_value
+ind2 = X_cat[sample_data.user_feature] == sample_data.user_feature_value
+ind = ind1 & ind2
+user_and_coupon_feature_count = np.sum(ind)
+likelihood = user_and_coupon_feature_count/coupon_feature_count
+
+posterior = prob_coupon_feature*likelihood/prob_user_feature
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
