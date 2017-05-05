@@ -41,7 +41,7 @@ labels = ["age" + str(suf) for suf in sufs]
 X_cat['AGE'] = pd.cut(user_coupon_purchase_detail.AGE, bins = bins, labels = labels)
 
 # 2. price rate
-bins = [0,25,50,60,70,80,90,100]
+bins = [-1,25,50,60,70,80,90,100]
 sufs = np.arange(len(bins)-1)
 labels = ["price_rate" + str(suf) for suf in sufs]
 X_cat['PRICE_RATE'] = pd.cut(user_coupon_purchase_detail.PRICE_RATE, bins = bins, labels = labels)
