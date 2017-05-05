@@ -33,34 +33,30 @@ user_coupon_purchase_detail.dropna(axis = 0, how = 'any', inplace = True)
 # conversion into categorical variables
 ###############################################################################
 # 1.age
-i = 0
-X_cat = pd.DataFrame(columns = np.arange(5))
+X_cat = pd.DataFrame(columns = ['AGE', 'PRICE_RATE', 'CATALOG_PRICE', 'SEX_ID',
+                                'GENRE_NAME'])
 bins = [0,20,30,40,50,60,100]
 sufs = np.arange(len(bins)-1)
 labels = ["age" + str(suf) for suf in sufs]
-X_cat[i] = pd.cut(user_coupon_purchase_detail.AGE, bins = bins, labels = labels)
+X_cat['AGE'] = pd.cut(user_coupon_purchase_detail.AGE, bins = bins, labels = labels)
 
 # 2. price rate
-i = i + 1
 bins = [0,25,50,60,70,80,90,100]
 sufs = np.arange(len(bins)-1)
 labels = ["price_rate" + str(suf) for suf in sufs]
-X_cat[i] = pd.cut(user_coupon_purchase_detail.PRICE_RATE, bins = bins, labels = labels)
+X_cat['PRICE_RATE'] = pd.cut(user_coupon_purchase_detail.PRICE_RATE, bins = bins, labels = labels)
 
 # 3. catalog price
-i = i+1
 bins = [0, 1000, 2500, 5000, 10000, 20000, 30000, 40000, 50000, 60000, 70000, 1000000]
 sufs = np.arange(len(bins)-1)
 labels = ["catalog_price" + str(suf) for suf in sufs]
-X_cat[i] = pd.cut(user_coupon_purchase_detail.CATALOG_PRICE, bins = bins, labels = labels)
+X_cat['CATALOG_PRICE'] = pd.cut(user_coupon_purchase_detail.CATALOG_PRICE, bins = bins, labels = labels)
 
 # 4. sex_id
-i = i+1
-X_cat[i] = user_coupon_purchase_detail.SEX_ID
+X_cat['SEX_ID'] = user_coupon_purchase_detail.SEX_ID
 
 # 5. genre_name
-i = i+1
-X_cat[i] = user_coupon_purchase_detail.GENRE_NAME
+X_cat['GENRE_NAME'] = user_coupon_purchase_detail.GENRE_NAME
 
 # 6. predicated variable 
 y = user_coupon_purchase_detail.PURCHASE_FLG
