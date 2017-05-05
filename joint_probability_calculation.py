@@ -6,6 +6,12 @@ Created on Thu May 04 16:14:44 2017
 """
 
 ###############################################################################
+# pandas setting
+###############################################################################
+pd.set_option('expand_frame_repr', False)
+
+
+###############################################################################
 ###############################################################################
 # functions to calculate unconditional (marginal) probabilities.
 # the probability values are stored in the user_list_prob
@@ -39,24 +45,35 @@ c_features = ["GENRE_NAME", "PRICE_RATE", "CATALOG_PRICE"] # c: coupon
 ###############################################################################
 # coupon unconditional probability
 ##############################################################################
+coupon_prob = pd.DataFrame(columns = ('coupon_feature','coupon_feature_value', 
+                                           'prob'))
+
+i = 0
 for c_feature in c_features:
     c_feature_values = X_cat[c_feature].unique()
     c_value_count =  X_cat[c_feature].value_counts()
     c_total = sum(c_value_count)
     for c_feature_value in c_feature_values:
         c_prob =  c_value_count.loc[c_feature_value]/c_total
-        print c_feature, c_feature_value, c_prob, c_total, c_value_count.loc[c_feature_value]
+        coupon_prob.loc[i] = [c_feature, c_feature_value, c_prob]
+        i += 1
 
 ###############################################################################
 # user unconditional probability
 ###############################################################################
+user_prob = pd.DataFrame(columns = ('user_feature','user_feature_value', 
+                                           'prob'))
+
+i = 0
 for u_feature in u_features:
     u_feature_values = X_cat[u_feature].unique()
     u_value_count =  X_cat[u_feature].value_counts()
     u_total = sum(u_value_count)
     for u_feature_value in u_feature_values:
         u_prob =  u_value_count.loc[u_feature_value]/u_total
-        print u_feature, u_feature_value, u_prob
+        user_prob.loc[i] = [u_feature, u_feature_value, u_prob]
+        i += 1
+
 
 ###############################################################################
 # conditional probability
@@ -97,7 +114,9 @@ coupon_cond_prob[ind]
 # module to test conditional probability values
 ###############################################################################
 #sample_data = coupon_cond_prob.sample()
-sample_data = coupon_cond_prob.loc[6]
+n_row, n_col = coupon_cond_prob.shape
+n = np.random.choice(n_row)
+sample_data = coupon_cond_prob.loc[22] # 6,7,14,15,22,23
 
 sample_data.coupon_feature
 sample_data.user_feature
@@ -126,6 +145,25 @@ user_and_coupon_feature_count = np.sum(ind)
 likelihood = user_and_coupon_feature_count/coupon_feature_count
 
 posterior = prob_coupon_feature*likelihood/prob_user_feature
+
+###############################################################################
+# another module to test conditional probability: need to generalize
+###############################################################################
+coupon_feature = "グルメ"
+user_feature_1 = 'f'
+user_feature_2 = 'm'
+
+p_cf_cond_uf_1 = 0.217242
+p_cf_cond_uf_2 = 0.281748
+p_uf_1 = 0.557716
+p_uf_2 = 0.442284
+
+p_cf = 0.245772
+p_cf_calc = p_cf_cond_uf_1*p_uf_1 + p_cf_cond_uf_2*p_uf_2
+
+
+
+
 
 
 
