@@ -57,17 +57,22 @@ for u_feature in u_features:
 for c_feature in c_features:
     c_feature_values = X_cat[c_feature].unique()
     c_value_count =  X_cat[c_feature].value_counts()
-    c_total = sum(c_value_count)
     for c_feature_value in c_feature_values:
         c_prob =  c_value_count.loc[c_feature_value]/c_total
-        print c_feature, c_feature_value, c_prob
         for u_feature in u_features:
             u_feature_values = X_cat[u_feature].unique()
             u_value_count =  X_cat[u_feature].value_counts()
             u_total = sum(u_value_count)
+            
+            ind = X_cat[c_feature] == c_feature_value
+            u_feature_value_cond = X_cat[ind][u_feature].unique()
+            u_value_count_cond =  X_cat[ind][u_feature].value_counts()
+            u_total_cond = sum(u_value_count_cond)
             for u_feature_value in u_feature_values:
                 u_prob =  u_value_count.loc[u_feature_value]/u_total
-                print u_feature, u_feature_value, u_prob
+                u_prob_cond = u_value_count_cond.loc[u_feature_value]/u_total_cond
+                print u_feature, u_feature_value, u_prob, u_prob_cond
+
                 
             
 
