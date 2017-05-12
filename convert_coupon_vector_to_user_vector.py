@@ -4,6 +4,34 @@ Created on Fri May 12 09:36:42 2017
 
 @author: tiwarir
 """
+###############################################################################
+# what are the coupons that are availbale
+###############################################################################
+X_cat.head()
+y.head()
+
+for i in xrange(5):
+    age_cat = X_cat.iloc[i,0]
+    a_v = np.zeros(6)
+    ind = int(age_cat[3])
+    a_v[ind] = 1
+    print age_cat[3], a_v
+    sex_cat = X_cat.iloc[i,3]
+    if sex_cat == 'm':
+        s_v = np.array([1,0])
+    else:
+        s_v = np.array([0,1])
+    print s_v
+    u_v = np.concatenate([s_v,a_v])
+    print u_v
+
+
+
+
+###############################################################################
+# user features to user vector
+###############################################################################
+X_cat.iloc[1]
 
 ##########################################################################
 # coupon features to user vector
