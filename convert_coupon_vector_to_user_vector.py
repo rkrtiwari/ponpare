@@ -5,6 +5,45 @@ Created on Fri May 12 09:36:42 2017
 @author: tiwarir
 """
 
+##########################################################################
+# coupon features to user vector
+#########################################################################
+coupon_cond_prob = coupon_cond_prob.sort_values(by = ['coupon_feature','user_feature',
+                                'coupon_feature_value','user_feature_value'])
+
+GENRE_NAME =  'ホテル・旅館'
+CATALOG_PRICE = 'catalog_price7'
+PRICE_RATE = 'price_rate1'
+
+coupon_feature_names = ['ホテル・旅館', 'catalog_price7', 'price_rate1']
+user_features = ['SEX_ID','AGE', 'AGE']
+
+w = [2,1,1]
+coupon_user_content = np.zeros(8)
+for cf_name, u_f in zip(coupon_feature_names,user_features):
+    print cf_name, u_f
+    ind1 = coupon_cond_prob.coupon_feature_value == cf_name
+    ind2 = coupon_cond_prob.user_feature == u_f
+    ind = ind1 & ind2
+    df = coupon_cond_prob.loc[ind]
+    if u_f == 'SEX_ID':
+        u_v = df.cond_prob.values
+        print u_v
+        fill_array = np.zeros(6)
+        uv_full = np.concatenate((u_v, fill_array))
+#        coupon_user_content += np.multiply(uv_full,w[0])
+        coupon_user_content += w[0]*uv_full
+    else:
+        u_v = df.cond_prob.values
+        print u_v
+        fill_array = np.zeros(2)
+        uv_full = np.concatenate((fill_array, u_v))
+        coupon_user_content += uv_full
+        
+coupon_user_content    
+
+
+
 ind1 = coupon_cond_prob.coupon_feature == "GENRE_NAME"
 ind2 = coupon_cond_prob.user_feature == "SEX_ID"
 ind = ind1 & ind2
@@ -57,38 +96,7 @@ ind = ind1 & ind2
 coupon_cond_prob.loc[ind]
 
 
-##########################################################################
-# coupon features
-#########################################################################
-coupon_cond_prob = coupon_cond_prob.sort_values(by = ['coupon_feature','user_feature',
-                                'coupon_feature_value','user_feature_value'])
 
-GENRE_NAME =  'ホテル・旅館'
-CATALOG_PRICE = 'catalog_price7'
-PRICE_RATE = 'price_rate1'
-
-coupon_feature_names = ['ホテル・旅館', 'catalog_price7', 'price_rate1']
-user_features = ['SEX_ID','AGE', 'AGE']
-
-w = [1,1,1]
-coupon_user_content = np.zeros(8)
-for cf_name, u_f in zip(coupon_feature_names,user_features):
-    print cf_name, u_f
-    ind1 = coupon_cond_prob.coupon_feature_value == cf_name
-    ind2 = coupon_cond_prob.user_feature == u_f
-    ind = ind1 & ind2
-    df = coupon_cond_prob.loc[ind]
-    if u_f == 'SEX_ID':
-        u_v = df.cond_prob.values
-        fill_array = np.zeros(6)
-        uv_full = np.concatenate((u_v, fill_array))
-        coupon_user_content += uv_full
-    else:
-        u_v = df.cond_prob.values
-        fill_array = np.zeros(2)
-        uv_full = np.concatenate((fill_array, u_v))
-        coupon_user_content += uv_full
-    
     
 
     
