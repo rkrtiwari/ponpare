@@ -25,7 +25,26 @@ for i in xrange(5):
     print u_v
 
 
+def user_vector_from_user_content(age_cat, sex_cat):
+    a_v = np.zeros(6)
+    ind = int(age_cat[3])
+    a_v[ind] = 1
+       
+    if sex_cat == 'm':
+        s_v = np.array([1,0])
+    else:
+        s_v = np.array([0,1])
+    u_v = np.concatenate([s_v,a_v])
+    return u_v
+    
+user_vector_from_user_content('age4', 'f')    
 
+n_users = 100
+uv = np.zeros((n_users, 8))
+for i in xrange(n_users):
+    age_cat = X_cat.iloc[i,0]
+    sex_cat = X_cat.iloc[i,3]
+    uv[i] = user_vector_from_user_content(age_cat, sex_cat)  
 
 ###############################################################################
 # user features to user vector
