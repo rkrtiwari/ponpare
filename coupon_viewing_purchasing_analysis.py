@@ -172,6 +172,8 @@ plt.yscale('log', nonposy='clip')
 
 ###############################################################################
 # purchase probability after viewing once, twice, thrice etc
+# increase view count for views in the range 1 to 10. increase the purchase 
+# count whenever the purchase count has non zero value for a given view count
 ###############################################################################
 purchase_count_on_view_count_dict = defaultdict(lambda: [0,0])
 n_viewed_bef_purchase = 10
