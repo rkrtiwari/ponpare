@@ -43,74 +43,6 @@ user_coupon_purchase_detail.dropna(axis = 0, how = 'any', inplace = True)
 
 
 ###############################################################################
-# conversion into categorical variables
-###############################################################################
-# 1.age
-X_cat = pd.DataFrame(columns = ['AGE', 'PRICE_RATE', 'CATALOG_PRICE', 'SEX_ID',
-                                'GENRE_NAME'])
-bins = [0,20,30,40,50,60,100]
-sufs = np.arange(len(bins)-1)
-labels = ["age" + str(suf) for suf in sufs]
-X_cat['AGE'] = pd.cut(user_coupon_purchase_detail.AGE, bins = bins, labels = labels)
-
-# 2. price rate
-bins = [-1,25,50,60,70,80,90,100]
-sufs = np.arange(len(bins)-1)
-labels = ["price_rate" + str(suf) for suf in sufs]
-X_cat['PRICE_RATE'] = pd.cut(user_coupon_purchase_detail.PRICE_RATE, bins = bins, labels = labels)
-
-# 3. catalog price
-bins = [0, 1000, 2500, 5000, 10000, 20000, 30000, 40000, 50000, 60000, 70000, 1000000]
-sufs = np.arange(len(bins)-1)
-labels = ["catalog_price" + str(suf) for suf in sufs]
-X_cat['CATALOG_PRICE'] = pd.cut(user_coupon_purchase_detail.CATALOG_PRICE, bins = bins, labels = labels)
-
-# 4. sex_id
-X_cat['SEX_ID'] = user_coupon_purchase_detail.SEX_ID
-
-# 5. genre_name
-X_cat['GENRE_NAME'] = user_coupon_purchase_detail.GENRE_NAME
-
-# 6. predicated variable 
-y = user_coupon_purchase_detail.PURCHASE_FLG
-
-
-
-###############################################################################
-# what are the coupons that are availbale
-###############################################################################
-X_cat.head()
-y.head()
-
-###############################################################################
-# convert user content into user vector
-###############################################################################
-def user_vector_from_user_content(age_cat, sex_cat):
-    a_v = np.zeros(6)
-    ind = int(age_cat[3])
-    a_v[ind] = 1
-       
-    if sex_cat == 'm':
-        s_v = np.array([1,0])
-    else:
-        s_v = np.array([0,1])
-    u_v = np.concatenate([s_v,a_v])
-    return u_v
-
-# test the code 
-# a. single user    
-user_vector_from_user_content('age4', 'f')    
-
-# b. multiple user
-n_users = 100
-uv = np.zeros((n_users, 8))
-for i in xrange(n_users):
-    age_cat = X_cat.iloc[i,0]
-    sex_cat = X_cat.iloc[i,3]
-    uv[i] = user_vector_from_user_content(age_cat, sex_cat)  
-
-
-###############################################################################
 # conditional probability calculation
 ###############################################################################
 u_features = ["AGE", "SEX_ID"]                             # u: user
@@ -148,11 +80,86 @@ coupon_cond_prob.sort_values(by = ['coupon_feature', 'user_feature',
     inplace = True)
 
 
-##########################################################################
-# coupon features to user vector
-#########################################################################
 
-# function to convert coupon feature to user vector
+###############################################################################
+# create a database of user vectors. save it in a dictionary
+###############################################################################
+
+#1. function to create user vector from user content
+
+import numpy as np
+import pandas as pd
+
+def convert_user_features_into_categories(user_list):
+    bins = [0,20,30,40,50,60,100]
+    sufs = np.arange(len(bins)-1)
+    labels = ["age" + str(suf) for suf in sufs]
+    user_list['age_cat'] = pd.cut(user_list.AGE, bins = bins, labels = labels)    
+    return
+
+def user_vector_from_user_content(age_cat, sex_cat):
+    a_v = np.zeros(6)
+    ind = int(age_cat[3])
+    a_v[ind] = 1
+       
+    if sex_cat == 'm':
+        s_v = np.array([1,0])
+    else:
+        s_v = np.array([0,1])
+    u_v = np.concatenate([s_v,a_v])
+    return u_v
+
+
+# test the code 
+# a. single user    
+user_vector_from_user_content( 'age1','f')    
+
+
+# create user vector for all the users in the user list and store it in a dictionary
+from collections import defaultdict
+user_content_vector_dict = defaultdict(lambda: [[0,0,0,0,0,0,0,0],'jap'])
+
+# get additional column in the user list that has category information
+convert_user_features_into_categories(user_list)
+
+n_users, n_features = user_list.shape
+for i in xrange(n_users):
+    user_id = user_list.USER_ID_hash.iat[i]
+    pref = user_list.PREF_NAME.iat[i]
+    gender = user_list.SEX_ID.iat[i]
+    age = user_list.age_cat.iat[i]
+       
+    user_vector = user_vector_from_user_content(age, gender)
+    user_content_vector_dict[user_id] = [user_vector, pref]
+    
+# testing the user_content_vector for a random user
+# value in the dictionary
+ind = np.random.choice(n_users, size = 1)
+user = user_list.USER_ID_hash.iloc[ind]
+print user_content_vector_dict[user.values[0]]
+
+# value in the user_list
+ind = user_list.USER_ID_hash == user.values[0]
+user_list.loc[ind]
+
+###############################################################################
+# create a database of coupon vector. save it in a dictionary
+###############################################################################
+
+def convert_coupon_features_into_categories(coupon_list_train):
+    bins = [-1,25,50,60,70,80,90,100]
+    sufs = np.arange(len(bins)-1)
+    labels = ["price_rate" + str(suf) for suf in sufs]
+    coupon_list_train['discount_cat'] = pd.cut(coupon_list_train.PRICE_RATE, bins = bins, labels = labels)
+    
+    bins = [0, 1000, 2500, 5000, 10000, 20000, 30000, 40000, 50000, 60000, 70000, 1000000]
+    sufs = np.arange(len(bins)-1)
+    labels = ["catalog_price" + str(suf) for suf in sufs]
+    coupon_list_train['price_cat'] = pd.cut(coupon_list_train.CATALOG_PRICE, bins = bins, labels = labels)
+    
+    return
+    
+
 def coupon_feature_to_user_vector(coupon_feature_names, user_features, coupon_cond_prob = coupon_cond_prob):
     coupon_user_content = np.zeros(8)
     w = [1,1,1]
@@ -177,14 +184,49 @@ def coupon_feature_to_user_vector(coupon_feature_names, user_features, coupon_co
     return coupon_user_content
 
 
-# results            
-GENRE_NAME =  'ホテル・旅館'
-CATALOG_PRICE = 'catalog_price7'
-PRICE_RATE = 'price_rate1'
+# get additional column in coupon list that has category information
+convert_coupon_features_into_categories(coupon_list_train)
+user_features = ['SEX_ID','AGE', 'AGE']
 
-coupon_feature_names = ['ホテル・旅館', 'catalog_price7', 'price_rate1']
-user_features = ['SEX_ID','AGE', 'AGE']            
-            
-coupon_feature_to_user_vector(coupon_feature_names, user_features, coupon_cond_prob)            
-            
-            
+# adding additional information in the coupon
+from collections import defaultdict
+coupon_content_vector_dict = defaultdict(lambda: [[0,0,0,0,0,0,0,0], 'japan', 
+                                                  ['2011-07-10', '2011-12-08']])
+n_coupons, n_features = coupon_list_train.shape    
+for i in xrange(n_coupons):
+    c_id = coupon_list_train.COUPON_ID_hash.iat[i]
+    genre = coupon_list_train.GENRE_NAME.iat[i]
+    price = coupon_list_train.price_cat.iat[i]    
+    discount = coupon_list_train.discount_cat.iat[i]
+    area = coupon_list_train.ken_name.iat[i]
+    validity = [coupon_list_train.VALIDFROM.iat[i], coupon_list_train.VALIDEND.iat[i] ]
+    c_features = [genre, price, discount]
+    c_u_vector = coupon_feature_to_user_vector(c_features, user_features)
+    coupon_content_vector_dict[c_id] = [c_u_vector, area, validity]
+
+    
+# testing the user_content_vector for a random user
+# value in the dictionary
+ind = np.random.choice(n_coupons, size = 1)
+coupon = coupon_list_train.COUPON_ID_hash.iloc[ind]
+print coupon_content_vector_dict[coupon.values[0]]
+
+# value in the user_list
+ind = coupon_list_train.COUPON_ID_hash == coupon.values[0]
+coupon_list_train.loc[ind]
+
+
+###############################################################################
+# make a recommendation. send the sorted list for recommendation
+###############################################################################
+#1. create a ranking 
+
+
+
+
+
+
+
+
+
+           
