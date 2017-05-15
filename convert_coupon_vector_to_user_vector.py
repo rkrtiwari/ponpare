@@ -219,14 +219,52 @@ coupon_list_train.loc[ind]
 ###############################################################################
 # make a recommendation. send the sorted list for recommendation
 ###############################################################################
-#1. create a ranking 
+#1. create a ranking for a given user
+coupon_content_vector_dict
+user_content_vector_dict
+
+#1. choosing a random user
+ind = np.random.choice(n_users, size = 1)
+user = user_list.USER_ID_hash.iloc[ind]
+user_id = user.values[0]
+
+user_vector = user_content_vector_dict[user_id]
+user_vector[0]
+
+#2. create score for all the coupons in the coupon list
+coupon_ranking = pd.DataFrame(columns = ('coupon_id', 'ken_area', 'validity',
+                                         'score'))
+i = 0
+for coupon_id in coupon_content_vector_dict.keys():
+    coupon_vec = coupon_content_vector_dict[coupon_id]
+    score = np.dot(user_vector[0], coupon_vec[0])
+    ken_area = coupon_vec[1]
+    validity = coupon_vec[2]
+    coupon_ranking.loc[i] = [coupon_id, ken_area, validity, score]
+    i +=1
+    
+coupon_ranking.sort_values(by = 'score', axis = 0, ascending = False,
+                           inplace = True)
+
+#3. return the top 5 coupons in the list
+coupon_ranking.iloc[0:5,0]  # top 5 recommended coupons
 
 
+# checking why so many coupons have the same score
+# finding the coupon feature of one of the coupons
+coupon_ranking.iloc[0,0]
+ind = coupon_list_train.COUPON_ID_hash == coupon_ranking.iloc[0,0]
+genre = coupon_list_train.GENRE_NAME[ind].values[0]
+discount_cat = coupon_list_train.discount_cat[ind].values[0]
+price_cat = coupon_list_train.price_cat[ind].values[0]
 
+# checking how many coupons have the same feature as the chosen coupon
+ind_gen = coupon_list_train.GENRE_NAME == genre
+ind_dis = coupon_list_train.discount_cat == discount_cat
+ind_price = coupon_list_train.price_cat == price_cat
+ind_com = ind_gen & ind_dis & ind_price
+np.sum(ind_com)
 
+coupon_list_train.loc[ind_com]
+coupon_ranking.iloc[999:1005]           
 
-
-
-
-
-           
