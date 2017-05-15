@@ -74,9 +74,9 @@ n_rows, n_cols = coupon_visit_train.shape
 n_rows
 
 for i in xrange(n_rows):
-    user_id = coupon_visit_train.USER_ID_hash[i]
-    coupon_id = coupon_visit_train.VIEW_COUPON_ID_hash[i]
-    if coupon_visit_train.PURCHASE_FLG[i] == 0:
+    user_id = coupon_visit_train.USER_ID_hash.iloc[i]
+    coupon_id = coupon_visit_train.VIEW_COUPON_ID_hash.iloc[i]
+    if coupon_visit_train.PURCHASE_FLG.iloc[i] == 0:
         view_purchase_dict[(user_id, coupon_id)][0] += 1
     else:
         view_purchase_dict[(user_id, coupon_id)][1] += 1
