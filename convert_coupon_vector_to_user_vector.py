@@ -5,79 +5,126 @@ Created on Mon May 15 08:04:13 2017
 @author: ravitiwari
 """
 
-###############################################################################
-# merging of dataframes
-# coupon visit data is merged with user detail and coupon detail
-###############################################################################
-# 1. removed duplicated columns so that there is only one entry for a given combination
-# of user_id and coupon_id. Either the user has bought a given coupon or he has not 
-# bought
-coupon_visit_train.sort_values(by = ['USER_ID_hash','VIEW_COUPON_ID_hash', 'PURCHASE_FLG'], inplace = True)
-coupon_visit_train.drop_duplicates(subset = ['USER_ID_hash','VIEW_COUPON_ID_hash'], keep = "last", inplace = True)
+import pandas as pd
 
-# 2. remove unnecessary columns
-columns_to_keep = ["PURCHASE_FLG", "USER_ID_hash", "VIEW_COUPON_ID_hash"]
-coupon_visit = coupon_visit_train[columns_to_keep]
+user_list = pd.read_csv("data/user_list.csv")
+coupon_list_train = pd.read_csv("data/coupon_list_train.csv")
 
-# 3. merge to get user and coupon detail
-visit_user_detail = coupon_visit.merge(user_list, on = 'USER_ID_hash', how = 'left')
-visit_user_coupon_detail = visit_user_detail.merge(coupon_list_train, left_on = 'VIEW_COUPON_ID_hash',
-                                                   right_on = 'COUPON_ID_hash', how = 'left')
-
-# 4. remove unnecessary columns
-columns_to_keep = ['PURCHASE_FLG', 'USER_ID_hash', 'SEX_ID', 'AGE', 'PREF_NAME',
-                   'GENRE_NAME', 'PRICE_RATE', 'CATALOG_PRICE', 'DISCOUNT_PRICE',
-                   'VALIDFROM', 'VALIDEND', 'ken_name', 'COUPON_ID_hash', 'VIEW_COUPON_ID_hash']
-visit_user_coupon_detail = visit_user_coupon_detail[columns_to_keep]
+def create_user_categorical_variable(user_list):
+    bins = [0,20,30,40,50,60,100]
+    sufs = np.arange(len(bins)-1)
+    labels = ["age" + str(suf) for suf in sufs]
+    user_list['age_cat'] = pd.cut(user_list.AGE, bins = bins, labels = labels)
+    return
 
 
-###############################################################################
-# data frame used in the calculation
-# visit_user_coupon_detail
-###############################################################################
+def create_coupon_categorical_variable(coupon_list_train):    
+    #1. price rate
+    bins = [-1,25,50,60,70,80,90,100]
+    sufs = np.arange(len(bins)-1)
+    labels = ["price_rate" + str(suf) for suf in sufs]
+    coupon_list_train['price_rate_cat'] = pd.cut(coupon_list_train.PRICE_RATE, bins = bins, labels = labels)
+    
+    #2. catalog price
+    bins = [0, 1000, 2500, 5000, 10000, 20000, 30000, 40000, 50000, 60000, 70000, 1000000]
+    sufs = np.arange(len(bins)-1)
+    labels = ["catalog_price" + str(suf) for suf in sufs]
+    coupon_list_train['price_cat'] = pd.cut(coupon_list_train.CATALOG_PRICE, bins = bins, labels = labels)
+    return
 
-columns_to_use = ['PURCHASE_FLG', 'SEX_ID', 'AGE', 'GENRE_NAME', 'PRICE_RATE',
-                  'CATALOG_PRICE']
-user_coupon_purchase_detail = visit_user_coupon_detail[columns_to_use]
-user_coupon_purchase_detail.dropna(axis = 0, how = 'any', inplace = True)
+create_user_categorical_variable(user_list) 
+create_coupon_categorical_variable(coupon_list_train)   
+
+user_list.head()
+coupon_list_train.head()
 
 
 ###############################################################################
-# conditional probability calculation
+# get data for  purchased coupons
 ###############################################################################
-u_features = ["AGE", "SEX_ID"]                             # u: user
-c_features = ["GENRE_NAME", "PRICE_RATE", "CATALOG_PRICE"] # c: coupon
+def get_coupon_purchase_data(user_list, coupon_list_train):
+    coupon_visit_train = pd.read_csv("data/coupon_visit_train.csv")
+    purchased_coupons = coupon_visit_train[coupon_visit_train.PURCHASE_FLG == 1]
 
-coupon_cond_prob = pd.DataFrame(columns = ('coupon_feature', 'user_feature', 
+    columns_to_keep = ['I_DATE', 'VIEW_COUPON_ID_hash', 'USER_ID_hash']
+    purchased_coupons = purchased_coupons[columns_to_keep]
+    
+    purchased_user_info = purchased_coupons.merge(user_list, how = 'left', 
+                                                     on = 'USER_ID_hash')
+    
+    purchased_user_coupon_info = purchased_user_info.merge(coupon_list_train,
+                how = 'left', left_on = 'VIEW_COUPON_ID_hash', right_on = 'COUPON_ID_hash')
+    columns_to_keep = ['SEX_ID', 'AGE', 'age_cat','GENRE_NAME', 'PRICE_RATE',
+                       'price_rate_cat', 'CATALOG_PRICE', 'price_cat']
+    
+    purchased_user_coupon_info = purchased_user_coupon_info[columns_to_keep]
+    purchased_user_coupon_info = purchased_user_coupon_info.dropna(how = 'any')
+    return purchased_user_coupon_info
+    
+coupon_purchase_data =  get_coupon_purchase_data(user_list, coupon_list_train) 
+
+
+###############################################################################
+# create categorical variables for calculation of conditional probability
+# needs some modification
+###############################################################################
+def get_conditional_probability(coupon_purchase_data, user_list, coupon_list_train):
+    c_features = ["GENRE_NAME", "price_rate_cat", "price_cat"]
+    u_features = ["age_cat", "SEX_ID"]
+    coupon_cond_prob = pd.DataFrame(columns = ('coupon_feature', 'user_feature', 
                                            'coupon_feature_value', 'user_feature_value',
                                            'cond_prob'))
-i = 0
-for c_feature in c_features:
-    c_feature_values = X_cat[c_feature].unique()
-    c_value_count =  X_cat[c_feature].value_counts()
-    c_total = sum(c_value_count)
-    for c_feature_value in c_feature_values:
-        c_prob =  c_value_count.loc[c_feature_value]/c_total
-        for u_feature in u_features:
-            u_feature_values = X_cat[u_feature].unique()
-            u_value_count =  X_cat[u_feature].value_counts()
-            u_total = sum(u_value_count)
-            
-            ind = X_cat[c_feature] == c_feature_value
-            u_feature_value_cond = X_cat[ind][u_feature].unique()
-            u_value_count_cond =  X_cat[ind][u_feature].value_counts()
-            u_total_cond = sum(u_value_count_cond)
-            for u_feature_value in u_feature_values:
-                u_prob =  u_value_count.loc[u_feature_value]/u_total
-                u_prob_cond = u_value_count_cond.loc[u_feature_value]/u_total_cond
-                post_prob = c_prob*u_prob_cond/u_prob
-                coupon_cond_prob.loc[i] = [c_feature, u_feature, c_feature_value,
-                                    u_feature_value, post_prob]
-                i += 1
+    i = 0
+    for c_feature in c_features:
+        c_feature_values = coupon_list_train[c_feature].unique()
+        c_value_count =  coupon_list_train[c_feature].value_counts()
+        c_total = sum(c_value_count)
+        for c_feature_value in c_feature_values:
+            c_prob =  c_value_count.loc[c_feature_value]/c_total
+            for u_feature in u_features:
+                u_feature_values = user_list[u_feature].unique()
+                u_value_count =  user_list[u_feature].value_counts()
+                u_total = sum(u_value_count)
                 
-coupon_cond_prob.sort_values(by = ['coupon_feature', 'user_feature', 
-                                   'coupon_feature_value', 'user_feature_value'], 
-    inplace = True)
+                ind = coupon_purchase_data[c_feature] == c_feature_value
+                u_value_count_cond =  coupon_purchase_data[ind][u_feature].value_counts()
+                u_total_cond = sum(u_value_count_cond)
+                
+                for u_feature_value in u_feature_values:
+                    u_prob =  u_value_count.loc[u_feature_value]/u_total
+                    u_prob_cond = u_value_count_cond.loc[u_feature_value]/u_total_cond
+                    post_prob = c_prob*u_prob_cond/u_prob
+                    coupon_cond_prob.loc[i] = [c_feature, u_feature, c_feature_value,
+                                    u_feature_value, post_prob]
+                    i += 1
+                    
+    coupon_cond_prob.sort_values(by = ['coupon_feature', 'user_feature', 
+                'coupon_feature_value', 'user_feature_value'],  inplace = True)
+    return coupon_cond_prob
+
+coupon_cond_prob = get_conditional_probability(coupon_purchase_data, user_list, 
+                                               coupon_list_train)
+
+
+
+###############################################################################
+# test of coupon conditional probability
+###############################################################################
+n = len(coupon_cond_prob)
+c_ind = np.random.choice(n)
+c_feature_value = coupon_cond_prob.coupon_feature_value[c_ind]
+u_ind = np.random.choice(n) 
+u_feature = coupon_cond_prob.user_feature[u_ind]
+u_feature
+
+ind1 = coupon_cond_prob.coupon_feature_value == c_feature_value
+ind2 = coupon_cond_prob.user_feature == u_feature
+ind = ind1 & ind2
+coupon_cond_prob[ind]
+
+
+
+
 
 
 
@@ -96,6 +143,20 @@ def convert_user_features_into_categories(user_list):
     labels = ["age" + str(suf) for suf in sufs]
     user_list['age_cat'] = pd.cut(user_list.AGE, bins = bins, labels = labels)    
     return
+
+def convert_coupon_features_into_categories(coupon_list_train):
+    bins = [-1,25,50,60,70,80,90,100]
+    sufs = np.arange(len(bins)-1)
+    labels = ["price_rate" + str(suf) for suf in sufs]
+    coupon_list_train['discount_cat'] = pd.cut(coupon_list_train.PRICE_RATE, bins = bins, labels = labels)
+    
+    bins = [0, 1000, 2500, 5000, 10000, 20000, 30000, 40000, 50000, 60000, 70000, 1000000]
+    sufs = np.arange(len(bins)-1)
+    labels = ["catalog_price" + str(suf) for suf in sufs]
+    coupon_list_train['price_cat'] = pd.cut(coupon_list_train.CATALOG_PRICE, bins = bins, labels = labels)
+    
+    return
+
 
 def user_vector_from_user_content(age_cat, sex_cat):
     a_v = np.zeros(6)
@@ -145,20 +206,6 @@ user_list.loc[ind]
 ###############################################################################
 # create a database of coupon vector. save it in a dictionary
 ###############################################################################
-
-def convert_coupon_features_into_categories(coupon_list_train):
-    bins = [-1,25,50,60,70,80,90,100]
-    sufs = np.arange(len(bins)-1)
-    labels = ["price_rate" + str(suf) for suf in sufs]
-    coupon_list_train['discount_cat'] = pd.cut(coupon_list_train.PRICE_RATE, bins = bins, labels = labels)
-    
-    bins = [0, 1000, 2500, 5000, 10000, 20000, 30000, 40000, 50000, 60000, 70000, 1000000]
-    sufs = np.arange(len(bins)-1)
-    labels = ["catalog_price" + str(suf) for suf in sufs]
-    coupon_list_train['price_cat'] = pd.cut(coupon_list_train.CATALOG_PRICE, bins = bins, labels = labels)
-    
-    return
-    
 
 def coupon_feature_to_user_vector(coupon_feature_names, user_features, coupon_cond_prob = coupon_cond_prob):
     coupon_user_content = np.zeros(8)
