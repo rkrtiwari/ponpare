@@ -43,3 +43,27 @@ coupon_list_train.size
 
 len(coupon_list_train.COUPON_ID_hash.unique())
 coupon_list_train.COUPON_ID_hash.value_counts()
+
+###############################################################################
+# coupon visit train
+###############################################################################
+
+fname = 'coupon_visit_train.csv' 
+fname = os.path.join("data", fname)
+coupon_visit_train = pd.read_csv(fname)
+
+coupon_visit_train.head()
+coupon_visit_train.I_DATE = pd.to_datetime(coupon_visit_train.I_DATE)
+coupon_visit_train.I_DATE
+
+
+coupon_visit_train.columns
+coupon_visit_train = coupon_visit_train.sort_values(by = ['VIEW_COUPON_ID_hash', 'I_DATE'])
+coupon_vist_train_first_view = coupon_visit_train.drop_duplicates(subset = 'VIEW_COUPON_ID_hash', keep = 'first')
+len(coupon_vist_train_first_view)
+len(coupon_vist_train_first_view.VIEW_COUPON_ID_hash.unique())
+
+
+
+
+
