@@ -6,7 +6,24 @@ Created on Mon May 15 08:04:13 2017
 """
 
 import pandas as pd
+import numpy as np
+import os
+from __future__ import division
+from collections import defaultdict
 
+###############################################################################
+# change to the appropriate working directory
+###############################################################################
+
+os.getcwd()
+new_dir = os.path.join("Documents", "ponpare")
+os.chdir(new_dir)
+###############################################################################
+
+
+###############################################################################
+# load files and create categorical variables
+###############################################################################
 user_list = pd.read_csv("data/user_list.csv")
 coupon_list_train = pd.read_csv("data/coupon_list_train.csv")
 
@@ -62,7 +79,7 @@ def get_coupon_purchase_data(user_list, coupon_list_train):
     return purchased_user_coupon_info
     
 coupon_purchase_data =  get_coupon_purchase_data(user_list, coupon_list_train) 
-
+coupon_purchase_data.head()
 
 ###############################################################################
 # create categorical variables for calculation of conditional probability
@@ -92,6 +109,10 @@ def get_conditional_probability(coupon_purchase_data, user_list, coupon_list_tra
                 
                 for u_feature_value in u_feature_values:
                     u_prob =  u_value_count.loc[u_feature_value]/u_total
+                    if u_feature_value not in u_value_count_cond:
+                        coupon_cond_prob.loc[i] = [c_feature, u_feature, c_feature_value,
+                                    u_feature_value, 0.00000001]
+                        continue
                     u_prob_cond = u_value_count_cond.loc[u_feature_value]/u_total_cond
                     post_prob = c_prob*u_prob_cond/u_prob
                     coupon_cond_prob.loc[i] = [c_feature, u_feature, c_feature_value,
@@ -106,9 +127,9 @@ coupon_cond_prob = get_conditional_probability(coupon_purchase_data, user_list,
                                                coupon_list_train)
 
 
-
 ###############################################################################
 # test of coupon conditional probability
+# later work. create a module out of these
 ###############################################################################
 n = len(coupon_cond_prob)
 c_ind = np.random.choice(n)
@@ -122,41 +143,25 @@ ind2 = coupon_cond_prob.user_feature == u_feature
 ind = ind1 & ind2
 coupon_cond_prob[ind]
 
+c_feature = coupon_cond_prob.coupon_feature.loc[ind].iloc[0]
+c_feature
+c_feature_value
 
+np.sum(coupon_purchase_data[c_feature] == c_feature_value)
+len(coupon_purchase_data[c_feature])
 
+coupon_prob = np.sum(coupon_purchase_data[c_feature] == c_feature_value)/len(coupon_purchase_data[c_feature])
+coupon_prob
 
+u_feat_value_count = user_list[u_feature].value_counts()
+u_feat_value_count_total = np.sum(u_feat_value_count)
+for u_feat in u_feat_value_count.index:
+    print u_feat
+    prob = u_feat_value_count.loc[u_feat]/u_feat_value_count_total
+    print prob
 
-
-
-###############################################################################
-# create a database of user vectors. save it in a dictionary
-###############################################################################
-
-#1. function to create user vector from user content
-
-import numpy as np
-import pandas as pd
-
-def convert_user_features_into_categories(user_list):
-    bins = [0,20,30,40,50,60,100]
-    sufs = np.arange(len(bins)-1)
-    labels = ["age" + str(suf) for suf in sufs]
-    user_list['age_cat'] = pd.cut(user_list.AGE, bins = bins, labels = labels)    
-    return
-
-def convert_coupon_features_into_categories(coupon_list_train):
-    bins = [-1,25,50,60,70,80,90,100]
-    sufs = np.arange(len(bins)-1)
-    labels = ["price_rate" + str(suf) for suf in sufs]
-    coupon_list_train['discount_cat'] = pd.cut(coupon_list_train.PRICE_RATE, bins = bins, labels = labels)
-    
-    bins = [0, 1000, 2500, 5000, 10000, 20000, 30000, 40000, 50000, 60000, 70000, 1000000]
-    sufs = np.arange(len(bins)-1)
-    labels = ["catalog_price" + str(suf) for suf in sufs]
-    coupon_list_train['price_cat'] = pd.cut(coupon_list_train.CATALOG_PRICE, bins = bins, labels = labels)
-    
-    return
-
+0.162243693438*0.000654 + 0.30481353561*0.000871 + 0.273160494907*0.001749 + 0.168626765182*0.001664 + 0.0846412801119*0.004300 
+###################################################################################
 
 def user_vector_from_user_content(age_cat, sex_cat):
     a_v = np.zeros(6)
@@ -176,32 +181,42 @@ def user_vector_from_user_content(age_cat, sex_cat):
 user_vector_from_user_content( 'age1','f')    
 
 
-# create user vector for all the users in the user list and store it in a dictionary
-from collections import defaultdict
-user_content_vector_dict = defaultdict(lambda: [[0,0,0,0,0,0,0,0],'jap'])
-
-# get additional column in the user list that has category information
-convert_user_features_into_categories(user_list)
-
-n_users, n_features = user_list.shape
-for i in xrange(n_users):
-    user_id = user_list.USER_ID_hash.iat[i]
-    pref = user_list.PREF_NAME.iat[i]
-    gender = user_list.SEX_ID.iat[i]
-    age = user_list.age_cat.iat[i]
-       
-    user_vector = user_vector_from_user_content(age, gender)
-    user_content_vector_dict[user_id] = [user_vector, pref]
+###############################################################################
+# create user vector for all the users in the user list and store it in a 
+# dictionary
+###############################################################################
+def create_user_vector_dict(user_list):
+    user_content_vector_dict = defaultdict(lambda: [[0,0,0,0,0,0,0,0],'jap'])
+    n_users, n_features = user_list.shape
     
+    for i in range(n_users):
+        user_id = user_list.USER_ID_hash.iloc[i]
+        pref = user_list.PREF_NAME.iloc[i]
+        gender = user_list.SEX_ID.iloc[i]
+        age = user_list.age_cat.iloc[i]
+        user_vector = user_vector_from_user_content(age, gender)
+        user_content_vector_dict[user_id] = [user_vector, pref]
+        
+    return user_content_vector_dict
+   
+user_content_vector_dict = create_user_vector_dict(user_list)
+        
+   
 # testing the user_content_vector for a random user
 # value in the dictionary
-ind = np.random.choice(n_users, size = 1)
-user = user_list.USER_ID_hash.iloc[ind]
-print user_content_vector_dict[user.values[0]]
+def check_user_content_vector():
+    n_users, n_features = user_list.shape
+    ind = np.random.choice(n_users, size = 1)
+    user = user_list.USER_ID_hash.iloc[ind]
+    print user_content_vector_dict[user.values[0]][0]
+    print user_content_vector_dict[user.values[0]][1]
+    ind = user_list.USER_ID_hash == user.values[0]
+    print user_list.ix[ind, [1,2,4]]
+    bins = [0,20,30,40,50,60,100]
+    print bins
 
-# value in the user_list
-ind = user_list.USER_ID_hash == user.values[0]
-user_list.loc[ind]
+                
+check_user_content_vector()
 
 ###############################################################################
 # create a database of coupon vector. save it in a dictionary
@@ -209,109 +224,80 @@ user_list.loc[ind]
 
 def coupon_feature_to_user_vector(coupon_feature_names, user_features, coupon_cond_prob = coupon_cond_prob):
     coupon_user_content = np.zeros(8)
-    w = [1,1,1]
     for cf_name, u_f in zip(coupon_feature_names,user_features):
         ind1 = coupon_cond_prob.coupon_feature_value == cf_name
         ind2 = coupon_cond_prob.user_feature == u_f
         ind = ind1 & ind2
         df = coupon_cond_prob.loc[ind]
+        print cf_name, u_f
+        print df
         
         if u_f == 'SEX_ID':
             u_v = df.cond_prob.values
+            reversed_uv = u_v[::-1]
             fill_array = np.zeros(6)
-            uv_full = np.concatenate((u_v, fill_array))
-            coupon_user_content += w[0]*uv_full
+            uv_full = np.concatenate((reversed_uv, fill_array))
+            print uv_full
+            coupon_user_content += uv_full
             
         else:
             u_v = df.cond_prob.values
-            fill_array = np.zeros(2)
+            if len(u_v) == 6:
+                fill_array = np.zeros(2)
+            else:
+                fill_array = np.zeros(3)            
             uv_full = np.concatenate((fill_array, u_v))
+            print uv_full
             coupon_user_content += uv_full
             
     return coupon_user_content
 
+# testing coupon_feature_to_user_vector
+coupon_feature_to_user_vector(['エステ'], ['SEX_ID'], coupon_cond_prob)
+c_fn = ['\xe3\x82\xb0\xe3\x83\xab\xe3\x83\xa1', 'catalog_price2', 'price_rate1']
+user_features = ['SEX_ID','age_cat', 'age_cat']
+coupon_cond_prob.head()
+
+coupon_feature_to_user_vector(c_fn, user_features, coupon_cond_prob)
 
 # get additional column in coupon list that has category information
-convert_coupon_features_into_categories(coupon_list_train)
-user_features = ['SEX_ID','AGE', 'AGE']
 
-# adding additional information in the coupon
-from collections import defaultdict
-coupon_content_vector_dict = defaultdict(lambda: [[0,0,0,0,0,0,0,0], 'japan', 
+
+def create_coupon_vector_dict(coupon_list_train):
+    coupon_content_vector_dict = defaultdict(lambda: [[0,0,0,0,0,0,0,0], 'japan', 
                                                   ['2011-07-10', '2011-12-08']])
-n_coupons, n_features = coupon_list_train.shape    
-for i in xrange(n_coupons):
-    c_id = coupon_list_train.COUPON_ID_hash.iat[i]
-    genre = coupon_list_train.GENRE_NAME.iat[i]
-    price = coupon_list_train.price_cat.iat[i]    
-    discount = coupon_list_train.discount_cat.iat[i]
-    area = coupon_list_train.ken_name.iat[i]
-    validity = [coupon_list_train.VALIDFROM.iat[i], coupon_list_train.VALIDEND.iat[i] ]
-    c_features = [genre, price, discount]
-    c_u_vector = coupon_feature_to_user_vector(c_features, user_features)
-    coupon_content_vector_dict[c_id] = [c_u_vector, area, validity]
+    n_coupons, n_features = coupon_list_train.shape
+    user_features = ['SEX_ID','age_cat', 'age_cat']
+    for i in xrange(2,n_coupons):
+        c_id = coupon_list_train.COUPON_ID_hash.iat[i]
+        genre = coupon_list_train.GENRE_NAME.iat[i]
+        price = coupon_list_train.price_cat.iat[i]
+        discount = coupon_list_train.price_rate_cat.iat[i]
+        area = coupon_list_train.ken_name.iat[i]
+        validity = [coupon_list_train.VALIDFROM.iat[i], coupon_list_train.VALIDEND.iat[i]]
+        c_features = [genre, price, discount]
+        c_u_vector = coupon_feature_to_user_vector(c_features, user_features)
+        coupon_content_vector_dict[c_id] = [c_u_vector, area, validity]
+    return coupon_content_vector_dict
+        
+coupon_content_vector_dict = create_coupon_vector_dict(coupon_list_train)
+ 
 
-    
 # testing the user_content_vector for a random user
 # value in the dictionary
-ind = np.random.choice(n_coupons, size = 1)
-coupon = coupon_list_train.COUPON_ID_hash.iloc[ind]
-print coupon_content_vector_dict[coupon.values[0]]
 
-# value in the user_list
-ind = coupon_list_train.COUPON_ID_hash == coupon.values[0]
-coupon_list_train.loc[ind]
-
-
-###############################################################################
-# make a recommendation. send the sorted list for recommendation
-###############################################################################
-#1. create a ranking for a given user
-coupon_content_vector_dict
-user_content_vector_dict
-
-#1. choosing a random user
-ind = np.random.choice(n_users, size = 1)
-user = user_list.USER_ID_hash.iloc[ind]
-user_id = user.values[0]
-
-user_vector = user_content_vector_dict[user_id]
-user_vector[0]
-
-#2. create score for all the coupons in the coupon list
-coupon_ranking = pd.DataFrame(columns = ('coupon_id', 'ken_area', 'validity',
-                                         'score'))
-i = 0
-for coupon_id in coupon_content_vector_dict.keys():
-    coupon_vec = coupon_content_vector_dict[coupon_id]
-    score = np.dot(user_vector[0], coupon_vec[0])
-    ken_area = coupon_vec[1]
-    validity = coupon_vec[2]
-    coupon_ranking.loc[i] = [coupon_id, ken_area, validity, score]
-    i +=1
+def check_coupon_content_vector():
+    n_coupons, n_features = coupon_list_train.shape
+    ind = np.random.choice(n_coupons, size = 1)
+    coupon = coupon_list_train.COUPON_ID_hash.iloc[ind]
+    print coupon_content_vector_dict[coupon.values[0]][0]
+    print coupon_content_vector_dict[coupon.values[0]][1]
+    print coupon_content_vector_dict[coupon.values[0]][2]
     
-coupon_ranking.sort_values(by = 'score', axis = 0, ascending = False,
-                           inplace = True)
+    ind = coupon_list_train.COUPON_ID_hash == coupon.values[0]
+    print coupon_list_train.loc[ind, ['GENRE_NAME','VALIDFROM', 'VALIDEND', 'ken_name']]
+    
+check_coupon_content_vector()
 
-#3. return the top 5 coupons in the list
-coupon_ranking.iloc[0:5,0]  # top 5 recommended coupons
 
-
-# checking why so many coupons have the same score
-# finding the coupon feature of one of the coupons
-coupon_ranking.iloc[0,0]
-ind = coupon_list_train.COUPON_ID_hash == coupon_ranking.iloc[0,0]
-genre = coupon_list_train.GENRE_NAME[ind].values[0]
-discount_cat = coupon_list_train.discount_cat[ind].values[0]
-price_cat = coupon_list_train.price_cat[ind].values[0]
-
-# checking how many coupons have the same feature as the chosen coupon
-ind_gen = coupon_list_train.GENRE_NAME == genre
-ind_dis = coupon_list_train.discount_cat == discount_cat
-ind_price = coupon_list_train.price_cat == price_cat
-ind_com = ind_gen & ind_dis & ind_price
-np.sum(ind_com)
-
-coupon_list_train.loc[ind_com]
-coupon_ranking.iloc[999:1005]           
 
