@@ -9,6 +9,7 @@ Created on Thu May 18 14:11:49 2017
 
 import numpy as np
 import pandas as pd
+import pickle
 
 ###############################################################################
 # make a recommendation. send the sorted list for recommendation
@@ -126,8 +127,16 @@ def get_accuracy_multiple_users(n=50):
         accuracy.append(check_accuracy(recommendation, purchased))
     return accuracy
         
-accuracy =  get_accuracy_multiple_users(n=3)       
-        
+accuracy =  get_accuracy_multiple_users(n=100) 
+accuracy_string = str(accuracy)
+f =  open('accuracy.txt', 'wb ') 
+f.write(accuracy_string) 
+f.close() 
+
+pickle.dump(accuracy, open('accuracy.pkl', 'wb '))
+accuracy2 = pickle.load(open('accuracy.pkl','rb'))
+ 
+       
     
 
 
