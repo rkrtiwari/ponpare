@@ -42,11 +42,6 @@ def get_a_user(user_list, user_content_vector_dict, test):
     return user_id, user_vector
 
 
-user_id, user_content = get_a_user(user_list, user_content_vector_dict, test)   
-
-ind = user_list.USER_ID_hash == user_id
-user_content
-user_list.loc[ind]
 
 
 ###############################################################################
@@ -76,25 +71,85 @@ def create_product_ranking(user_content, coupon_content_vector_dict, purchased_a
     return coupon_ranking      
             
             
-product_rank = create_product_ranking(user_content, coupon_content_vector_dict, purchased_area)    
- 
+
 ###############################################################################
 # code for validation
 ###############################################################################
-#1. how many coupons got the same ranking
-user_id
-product_rank = product_rank.drop_duplicates(subset = 'score', keep = 'first')
-coupons = product_rank.coupon_id.iloc[:10]
+#1. recommended items
 
-for coupon in coupons:
-    ind = coupon_list_train.COUPON_ID_hash == coupon
-    print coupon_list_train[['price_rate_cat', 'price_cat', 'GENRE_NAME']].loc[ind]
+def get_recommendation(user_id, user_content):
+    product_rank = create_product_ranking(user_content, coupon_content_vector_dict, purchased_area)
+    product_rank = product_rank.drop_duplicates(subset = 'score', keep = 'first')
+    coupons = product_rank.coupon_id.iloc[:10]
+    recommendation = []
+    for coupon in coupons:
+        ind = coupon_list_train.COUPON_ID_hash == coupon
+        coupon_feat = (coupon_list_train.price_rate_cat.loc[ind].values[0], \
+          coupon_list_train.price_cat.loc[ind].values[0],\
+          coupon_list_train.GENRE_NAME.loc[ind].values[0])
+        recommendation.append(coupon_feat)
+    return recommendation
 
 
-#2. look at the test data
-test.head()
-ind = test.USER_ID_hash == user_id
-test[['GENRE_NAME', 'price_cat', 'price_rate_cat']].loc[ind]
+#2. item bought during the test period        
+def get_items_bought(user_id):
+    purchased = []
+    ind = test.USER_ID_hash == user_id
+    actual_purchase = test[['GENRE_NAME', 'price_cat', 'price_rate_cat']].loc[ind]
+    for i in range(len(actual_purchase)):
+        pur_coup_feat = (actual_purchase.price_rate_cat.values[i], \
+                     actual_purchase.price_cat.values[i],\
+                     actual_purchase.GENRE_NAME.values[i])
+        purchased.append(pur_coup_feat)
+    return purchased 
+
+
+        
+#3. function to check accuracy
+def check_accuracy(recommendation, purchased):
+    s1 = set(recommendation)
+    s2 = set(purchased)
+    s3 = s2.intersection(s1)
+    if (len(s2) > 0):
+        return len(s2), len(s3)*100/len(s2)
+    else:
+        return len(s2), 'no purchase'
+
+# 4 get accuracy for 100 users
+def get_accuracy_multiple_users(n=50):
+    accuracy = []
+    for i in xrange(n):
+        print i
+        user_id, user_content = get_a_user(user_list, user_content_vector_dict, test)
+        recommendation = get_recommendation(user_id, user_content)
+        purchased =  get_items_bought(user_id)
+        accuracy.append(check_accuracy(recommendation, purchased))
+    return accuracy
+        
+accuracy =  get_accuracy_multiple_users(n=3)       
+        
+    
+
+
+
+    
+    
+    
+    
+    
+    
+    
+    
+
+  
+
+      
+   
+
+
+
+
+
 
 
 
