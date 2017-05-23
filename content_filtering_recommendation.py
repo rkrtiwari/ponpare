@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu May 18 14:11:49 2017
+Created on Mon May 22 21:16:53 2017
 
-@author: ravitiwari
+@author: tiwarir
 """
-
-
 
 import numpy as np
 import pandas as pd
 import pickle
+import matplotlib.pyplot as plt
 
 ###############################################################################
 # make a recommendation. send the sorted list for recommendation
@@ -71,7 +70,12 @@ def create_product_ranking(user_content, coupon_content_vector_dict, purchased_a
                            inplace = True)
     return coupon_ranking      
             
-            
+user_id, user_content = get_a_user(user_list, user_content_vector_dict, test)            
+product_rank = create_product_ranking(user_content, coupon_content_vector_dict, purchased_area)
+coupons = product_rank.coupon_id.values
+ind = coupon_list_train.COUPON_ID_hash == coupons
+coupon_list_train[['COUPON_ID_hash', 'GENRE_NAME', 'price_cat','price_rate_cat']].loc[ind]
+
 
 ###############################################################################
 # code for validation
@@ -117,7 +121,7 @@ def check_accuracy(recommendation, purchased):
         return len(s2), 'no purchase'
 
 # 4 get accuracy for 100 users
-def get_accuracy_multiple_users(n=50):
+def get_accuracy_multiple_users(n=5):
     accuracy = []
     for i in xrange(n):
         print i
@@ -127,7 +131,7 @@ def get_accuracy_multiple_users(n=50):
         accuracy.append(check_accuracy(recommendation, purchased))
     return accuracy
         
-accuracy =  get_accuracy_multiple_users(n=100) 
+accuracy =  get_accuracy_multiple_users(n=5) 
 accuracy_string = str(accuracy)
 f =  open('accuracy.txt', 'wb ') 
 f.write(accuracy_string) 
@@ -135,13 +139,59 @@ f.close()
 
 pickle.dump(accuracy, open('accuracy.pkl', 'wb '))
 accuracy2 = pickle.load(open('accuracy.pkl','rb'))
- 
-       
+accuracy2 
+
+df = pd.DataFrame(columns=['purchase_count', 'correct_prediction'])
+
+i = 0
+for items in accuracy2:
+    no, percent = items
+    df.loc[i] =  [no, int(no*percent/100)]
+    i += 1
+
+df.head()      
     
+# zero correct
+zero_right = df.loc[df.correct_prediction ==0,]
+one_right = df.loc[df.correct_prediction ==1,]
+two_right = df.loc[df.correct_prediction ==2,]
+three_right = df.loc[df.correct_prediction ==3,] 
+
+#1. zero match
+title = "total cases of zero match:", len(zero_right)
+plt.hist(zero_right.purchase_count.values, align = 'left', bins = [1,2,3,4,5,6],
+         rwidth = 0.9, normed = False)
+plt.title(title)
+plt.xlabel("user purchase count")
+plt.show()
+
+#2. one match
+title = "total cases of one match:", len(one_right)
+plt.hist(one_right.purchase_count.values, align = 'left', bins = [1,2,3,4,5,6],
+         rwidth = 0.9, normed = False)
+plt.title(title)
+plt.xlabel("user purchase count")
+plt.show()
+
+#2. two match
+title = "total cases of two match:", len(two_right)
+plt.hist(two_right.purchase_count.values, align = 'left', bins = [1,2,3,4,5,6],
+         rwidth = 0.9, normed = False)
+plt.title(title)
+plt.xlabel("user purchase count")
+plt.yticks([1,2])
+plt.show()
+
+#3. three match
+title = "total cases of three match:", len(three_right)
+plt.hist(three_right.purchase_count.values, align = 'left', bins = [1,2,3,4,5,6],
+         rwidth = 0.9, normed = False)
+plt.title(title)
+plt.xlabel("user purchase count")
+plt.yticks([1])
+plt.show()
 
 
-
-    
     
     
     
@@ -160,23 +210,3 @@ accuracy2 = pickle.load(open('accuracy.pkl','rb'))
 
 
 
-
-
-
-# checking why so many coupons have the same score
-# finding the coupon feature of one of the coupons
-coupon_ranking.iloc[0,0]
-ind = coupon_list_train.COUPON_ID_hash == coupon_ranking.iloc[0,0]
-genre = coupon_list_train.GENRE_NAME[ind].values[0]
-discount_cat = coupon_list_train.discount_cat[ind].values[0]
-price_cat = coupon_list_train.price_cat[ind].values[0]
-
-# checking how many coupons have the same feature as the chosen coupon
-ind_gen = coupon_list_train.GENRE_NAME == genre
-ind_dis = coupon_list_train.discount_cat == discount_cat
-ind_price = coupon_list_train.price_cat == price_cat
-ind_com = ind_gen & ind_dis & ind_price
-np.sum(ind_com)
-
-coupon_list_train.loc[ind_com]
-coupon_ranking.iloc[999:1005]           
