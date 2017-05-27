@@ -156,7 +156,8 @@ testing_coupon_cluster_assignement(coupon_id_to_clust_dict, coupon_list_train)
 ###############################################################################
 # replacing coupon_id with cluster_id
 ###############################################################################
-def replace_coupon_id_with_cluster_id(coupon_visit_train, coupon_id_to_clust_dict):
+def replace_coupon_id_with_cluster_id(coupon_id_to_clust_dict):
+    coupon_visit_train = pd.read_csv("data/coupon_visit_train.csv") 
     columns_to_keep = ['I_DATE', 'VIEW_COUPON_ID_hash', 'USER_ID_hash']
     coupon_clust_visit = coupon_visit_train[columns_to_keep].copy()
 
@@ -173,23 +174,136 @@ def replace_coupon_id_with_cluster_id(coupon_visit_train, coupon_id_to_clust_dic
     coupon_clust_visit = coupon_clust_visit.drop_duplicates(subset = ['VIEW_COUPON_ID_hash', 'USER_ID_hash'],
                                        keep = 'first')
     return coupon_clust_visit
+
     
-coupon_clust_visit = replace_coupon_id_with_cluster_id(coupon_visit_train, coupon_id_to_clust_dict)    
+coupon_clust_visit = replace_coupon_id_with_cluster_id(coupon_id_to_clust_dict)    
+
+###############################################################################
+# Find out actually what percentage of people buy. Make subsetting so that we have
+# data for only those people. Other way of subseting is not working
+###############################################################################
+def get_users_with_at_least_one_purchase(n=200):
+    coupon_visit_train = pd.read_csv("data/coupon_visit_train.csv")
+    ind_pur = coupon_visit_train.PURCHASE_FLG == 1
+    user_ids = coupon_visit_train.loc[ind_pur].USER_ID_hash.unique()
+    n_users = len(user_ids)
+    ind = np.random.choice(range(n_users), size = n)
+    return user_ids[ind]
+    
+users_with_purchase = get_users_with_at_least_one_purchase(n=50)
+
+# checking the code to make sure that a random user has indeed made at least one
+# purchase
+#def check_users_with_purchase(users_with_purchase):
+#    n_users = len(users_with_purchase)
+#    ind = np.random.choice(range(n_users))
+#    user_id = users_with_purchase[ind]
+#    coupon_visit_train = pd.read_csv("data/coupon_visit_train.csv")
+#    user_ind = coupon_visit_train.USER_ID_hash == user_id
+#    coupon_visit_train = coupon_visit_train.loc[user_ind]
+#    columns_to_keep = ['PURCHASE_FLG', 'USER_ID_hash', 'VIEW_COUPON_ID_hash']
+#    coupon_visit_train = coupon_visit_train[columns_to_keep]    
+#    coupon_visit_train = coupon_visit_train.sort_values(by = 'PURCHASE_FLG', ascending = False)
+#    return coupon_visit_train.iloc[:5]
+#
+#check_users_with_purchase(users_with_purchase)
+
+###############################################################################
+# get viewing/purchasing behavior of those users
+###############################################################################
+def get_visit_data_for_users_with_purchase(users_with_purchase):
+    coupon_visit_train = pd.read_csv("data/coupon_visit_train.csv")
+    ind = coupon_visit_train.USER_ID_hash.isin(users_with_purchase)
+    coupon_visit_train = coupon_visit_train.loc[ind]
+    coupon_visit_train = coupon_visit_train.sort_values(by = 'PURCHASE_FLG', 
+                                                        ascending = False )
+    coupon_visit_train = coupon_visit_train.drop_duplicates(subset = [ 'VIEW_COUPON_ID_hash', 
+    'USER_ID_hash'], keep = 'first')
+    return coupon_visit_train
+    
+coupon_visit_selected_users =  get_visit_data_for_users_with_purchase(users_with_purchase)
 
 
 ###############################################################################
-# find out the regions people mostly buy from
+# substitute selected users coupon id with coupon cluster id
+###############################################################################
+def substitute_coupon_id_with_cluster_id(coupon_visit_selected_users, coupon_id_to_clust_dict):
+    coupons_in_dict = coupon_id_to_clust_dict.keys()
+    ind = coupon_visit_selected_users.VIEW_COUPON_ID_hash.isin(coupons_in_dict)
+    coupon_visit_selected_users = coupon_visit_selected_users.loc[ind]
+    n = len(coupon_visit_selected_users)
+    for i in range(n):
+        coupon_id = coupon_visit_selected_users.VIEW_COUPON_ID_hash.iat[i]
+        coupon_visit_selected_users.VIEW_COUPON_ID_hash.iat[i] = coupon_id_to_clust_dict[coupon_id]
+    coupon_visit_selected_users = coupon_visit_selected_users.sort_values(by = 'PURCHASE_FLG', ascending = False)
+    coupon_visit_selected_users = coupon_visit_selected_users.drop_duplicates(subset = 
+    ['USER_ID_hash', 'VIEW_COUPON_ID_hash'], keep = 'first') 
+    columns_to_keep = ['USER_ID_hash', 'VIEW_COUPON_ID_hash', 'PURCHASE_FLG']
+    return coupon_visit_selected_users[columns_to_keep]
+        
+coupon_cluster_visit_selected_users = substitute_coupon_id_with_cluster_id(coupon_visit_selected_users, coupon_id_to_clust_dict)  
+coupon_cluster_visit_selected_users.shape
+coupon_cluster_visit_selected_users.head()
+coupon_cluster_visit_selected_users.tail()
+
+def create_train_test_set(coupon_cluster_visit_selected_users):
+    n_obs = len(coupon_cluster_visit_selected_users)
+    ind_train = np.random.choice(n_obs, size = int(0.7*n_obs))
+    ind_test = [x for x in range(n_obs) if x not in ind_train]
+    train = coupon_cluster_visit_selected_users.iloc[ind_train]
+    test = coupon_cluster_visit_selected_users.iloc[ind_test]
+    return train, test
+    
+train, test = create_train_test_set(coupon_cluster_visit_selected_users)    
+
+def create_rating_matrix(train):
+    ind_seen = train.PURCHASE_FLG == 0
+    ind_pur = train.PURCHASE_FLG == 1
+    train.loc[ind_seen, 'rating'] = 0.7
+    train.loc[ind_pur, 'rating'] = 1
+    rating_matrix = train.pivot(index = 'USER_ID_hash', columns = 'VIEW_COUPON_ID_hash', values = 'rating')
+    return rating_matrix
+    
+create_rating_matrix(train)
+
+train.head()
+train = train.sort_values(by = 'PURCHASE_FLG')
+train = train.drop_duplicates(subset = ['USER_ID_hash', 'VIEW_COUPON_ID_hash'], keep = 'last')
+train.pivot(index = 'USER_ID_hash', columns = 'VIEW_COUPON_ID_hash', values = 'rating')
+
+
+
+
+
+
+
+
+    
+    
+    
+
+
+
+
+
+
+
+
+
+###############################################################################
+# find out the regions people mostly buy from (this way of subseting not working)
 ###############################################################################
 # 1. subsetting data to get only the 
-def get_purchased_coupon_data(coupon_visit_train):    
+def get_purchased_coupon_data():
+    coupon_visit_train = pd.read_csv("data/coupon_visit_train.csv")    
     pur_ind = coupon_visit_train.PURCHASE_FLG == 1
     purchased_coupons = coupon_visit_train.loc[pur_ind]
     columns_to_keep = ['I_DATE', 'VIEW_COUPON_ID_hash', 'USER_ID_hash']
     purchased_coupons = purchased_coupons[columns_to_keep]
     return purchased_coupons
 
-coupon_visit_train = pd.read_csv("data/coupon_visit_train.csv")    
-purchased_coupons =  get_purchased_coupon_data(coupon_visit_train)       
+    
+purchased_coupons =  get_purchased_coupon_data()       
 purchased_coupons.head()
 
 def merge_purchased_coupon_to_get_location(purchased_coupons):
@@ -206,20 +320,20 @@ def merge_purchased_coupon_to_get_location(purchased_coupons):
     purchased_user_coupon = purchased_user_coupon_info[columns_to_keep]
     return purchased_user_coupon
     
-purchased_user_coupon = merge_purchased_coupon_to_get_location(purchased_coupons)
+purchased_user_coupon_info = merge_purchased_coupon_to_get_location(purchased_coupons)
 
 ###############################################################################
 # getting the coupon purchase area count by user prefecture
 ###############################################################################
 
-def get_purchased_coupon_area_by_user_area(purchased_user_coupon):
+def get_purchased_coupon_area_by_user_area(purchased_user_coupon_info):
     purchased_coupon_ken_by_user_pref = pd.DataFrame(columns = ['pref', 'ken',
                                                          'count', 'per_purchase'])
-    purchased_user_coupon.dropna(axis=0, how = 'any', inplace = True)
-    user_prefs = purchased_user_coupon.PREF_NAME.unique()
+    purchased_user_coupon_info.dropna(axis=0, how = 'any', inplace = True)
+    user_prefs = purchased_user_coupon_info.PREF_NAME.unique()
     for pref in user_prefs:
-        ind = purchased_user_coupon.PREF_NAME == pref
-        df = purchased_user_coupon.loc[ind]
+        ind = purchased_user_coupon_info.PREF_NAME == pref
+        df = purchased_user_coupon_info.loc[ind]
         df_value_counts = df.ken_name.value_counts()
         n_entry = len(df_value_counts)
         pref_s = pd.Series(index=range(n_entry))        
@@ -235,12 +349,12 @@ def get_purchased_coupon_area_by_user_area(purchased_user_coupon):
                                               inplace = True, ascending = False)  
     return purchased_coupon_ken_by_user_pref
 
-purchased_coupon_ken_by_user_pref = get_purchased_coupon_area_by_user_area(purchased_user_coupon)
+purchased_coupon_ken_by_user_pref = get_purchased_coupon_area_by_user_area(purchased_user_coupon_info)
 ###############################################################################
 # find out number of users in a given prefecture
 ###############################################################################
 
-def get_top_coupon_area_for_user_area(purchased_coupon_ken_by_user_pref, n = 3):
+def get_top_coupon_area_for_user_area(purchased_coupon_ken_by_user_pref, n = 5):
     purchase_area = {}
     pref_names = purchased_coupon_ken_by_user_pref.pref.unique()
     for pref in pref_names:
@@ -258,7 +372,7 @@ def get_top_coupon_area_for_user_area(purchased_coupon_ken_by_user_pref, n = 3):
         
     return purchase_area
 
-purchased_area = get_top_coupon_area_for_user_area(purchased_coupon_ken_by_user_pref)
+purchased_coupon_area = get_top_coupon_area_for_user_area(purchased_coupon_ken_by_user_pref)
 
 ## find out number of users in each prefecture
 def get_user_count_in_pref():
@@ -272,33 +386,35 @@ user_count_in_pref = get_user_count_in_pref()
 ## number of users
 def get_a_pref_based_on_number_of_users(user_count_in_pref, n_users = 250):
     user_count_in_pref.sort_values(ascending = False)
-    ind = user_count_in_pref <= 250
+    ind = user_count_in_pref <= n_users
     return user_count_in_pref.loc[ind, ].index[0]
     
-pref = get_a_pref_based_on_number_of_users(user_count_in_pref, n_users = 250)
+pref = get_a_pref_based_on_number_of_users(user_count_in_pref, n_users = 1000)
 print pref, user_count_in_pref.loc[pref]   
     
 ## find the coupon ken that users from this prefecture usually buys from
-def get_coupon_ken_for_user_pref(pref, purchased_area):
-    return purchased_area[pref].keys()
+def get_coupon_ken_for_user_pref(pref, purchased_coupon_area):
+    return purchased_coupon_area[pref].keys()
 
-coupon_kens = get_coupon_ken_for_user_pref(pref, purchased_area)
-print coupon_kens 
-print pref   
-    
+coupon_kens = get_coupon_ken_for_user_pref(pref, purchased_coupon_area)
+print pref 
+for ken in coupon_kens:
+    print ken
+  
 ###############################################################################
 # do the subsetting to get the visit data for  users of a given prefecture and 
 # only from the top 3 kens they usually buy from
 ###############################################################################
 def subset_coupon_visit_based_on_user_pref_and_coupon_ken(pref, coupon_kens):
+    coupon_visit_train = pd.read_csv("data/coupon_visit_train.csv") 
     coupon_list_train = pd.read_csv("data/coupon_list_train.csv")
     user_list = pd.read_csv('data/user_list.csv')
     coupon_list_train = pd.read_csv('data/coupon_list_train.csv')
-    user_visit_info = coupon_list_train.merge(user_list, how = 'left', 
+    user_visit_info = coupon_visit_train.merge(user_list, how = 'left', 
                                                      on = 'USER_ID_hash')
     user_visit_coupon_info = user_visit_info.merge(coupon_list_train,
                 how = 'left', left_on = 'VIEW_COUPON_ID_hash', right_on = 'COUPON_ID_hash')
-    columns_to_keep = ['I_DATE', 'VIEW_COUPON_ID_hash', 'USER_ID_hash', 'PREF_NAME',
+    columns_to_keep = ['I_DATE', 'PURCHASE_FLG','VIEW_COUPON_ID_hash', 'USER_ID_hash', 'PREF_NAME',
                    'ken_name']
     
     visited_coupon_user = user_visit_coupon_info[columns_to_keep]
@@ -309,23 +425,20 @@ def subset_coupon_visit_based_on_user_pref_and_coupon_ken(pref, coupon_kens):
     return visited_coupon_user
     
     
-subset_coupon_visit_based_on_user_pref_and_coupon_ken(pref, coupon_kens)
+coupon_visit_of_a_pref = subset_coupon_visit_based_on_user_pref_and_coupon_ken(pref, coupon_kens)
+coupon_visit_of_a_pref.head(15)
+coupon_visit_of_a_pref.shape
+coupon_visit_of_a_pref.head()
+np.sum(coupon_visit_of_a_pref.PURCHASE_FLG)
 
+
+# checking the result of subsetting
 coupon_visit_train = pd.read_csv("data/coupon_visit_train.csv")
-user_list = pd.read_csv('data/user_list.csv')
-coupon_list_train = pd.read_csv('data/coupon_list_train.csv')
-user_visit_info = coupon_visit_train.merge(user_list, how = 'left', 
-                                                     on = 'USER_ID_hash')
-user_visit_coupon_info = user_visit_info.merge(coupon_list_train,
-                how = 'left', left_on = 'VIEW_COUPON_ID_hash', right_on = 'COUPON_ID_hash')
-columns_to_keep = ['I_DATE', 'VIEW_COUPON_ID_hash', 'USER_ID_hash', 'PREF_NAME',
-                   'ken_name']
-    
-    visited_coupon_user = user_visit_coupon_info[columns_to_keep]
-    ind1 = visited_coupon_user.PREF_NAME == pref
-    ind2 = coupon_list_train.ken_name.isin(coupon_kens)
-    ind = ind1 & ind2
-    visited_coupon_user = visited_coupon_user.loc[ind]    
+coupon_visit_train.columns
+np.sum(coupon_visit_train.PURCHASE_FLG)*100/len(coupon_visit_train.PURCHASE_FLG)
+len(coupon_visit_train.PURCHASE_FLG)
+ 
+
 
 ###############################################################################
 # creating a rating matrix
