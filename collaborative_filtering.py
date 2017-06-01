@@ -73,7 +73,6 @@ def get_users_with_at_least_one_purchase(n=100):
     ind_pur = coupon_visit_train.PURCHASE_FLG == 1
     user_ids = coupon_visit_train.loc[ind_pur].USER_ID_hash.unique()
     n_users = len(user_ids)
-    np.random.seed(10)
     ind = np.random.choice(range(n_users), size = n)
     return user_ids[ind]
     
@@ -100,43 +99,28 @@ def substitute_coupon_id_with_cluster_id(coupon_visit_selected_users, coupon_id_
          
 def create_train_test_set(coupon_visit_selected_users):
     n_obs = len(coupon_visit_selected_users)
-    np.random.seed(10)
-    ind_train = np.random.choice(n_obs, size = int(0.7*n_obs))
+    ind_train = np.random.choice(n_obs, size = int(0.7*n_obs), replace = False)
     ind_test = [x for x in range(n_obs) if x not in ind_train]
     train = coupon_visit_selected_users.iloc[ind_train]
     test = coupon_visit_selected_users.iloc[ind_test]
     return train, test
     
 def create_rating_matrix(train):
-    train = train.sort_values(by = 'PURCHASE_FLG', ascending = False)
-    train = train.drop_duplicates(subset = ['USER_ID_hash', 'VIEW_COUPON_ID_hash'])
-    train['rating'] = 0.25
-    ind_seen = train.PURCHASE_FLG == 0
-    ind_pur = train.PURCHASE_FLG == 1
-    train.loc[ind_seen, 'rating'] = 0.7
-    train.loc[ind_pur, 'rating'] = 1
-    rating_matrix = train.pivot(index = 'USER_ID_hash', columns = 'VIEW_COUPON_ID_hash', values = 'rating')
+    train1 = train.copy()
+    train1.loc['rating'] = 0.25
+    ind_seen = train1.PURCHASE_FLG == 0
+    ind_pur = train1.PURCHASE_FLG == 1
+    train1.loc[ind_seen, 'rating'] = 0.7
+    train1.loc[ind_pur, 'rating'] = 1
+    rating_matrix = train1.pivot(index = 'USER_ID_hash', columns = 'VIEW_COUPON_ID_hash', values = 'rating')
     rating_matrix = rating_matrix.fillna(value = 0.25)
     return rating_matrix
  
-def create_rating_matrix2(train):
-    train = train.sort_values(by = 'PURCHASE_FLG', ascending = False)
-    train = train.drop_duplicates(subset = ['USER_ID_hash', 'VIEW_COUPON_ID_hash'])
-    train['rating'] = -1
-    ind_seen = train.PURCHASE_FLG == 0
-    ind_pur = train.PURCHASE_FLG == 1
-    train.loc[ind_seen, 'rating'] = 0.7
-    train.loc[ind_pur, 'rating'] = 1
-    rating_matrix = train.pivot(index = 'USER_ID_hash', columns = 'VIEW_COUPON_ID_hash', values = 'rating')
-    rating_matrix = rating_matrix.fillna(value = -1)
-    return rating_matrix    
-
 def get_test_users_and_purchases(test):
     columns_to_find_duplicates = ['USER_ID_hash', 'VIEW_COUPON_ID_hash', 'PURCHASE_FLG']
     test = test.drop_duplicates(subset = columns_to_find_duplicates, keep ='first')
     test_users_purchase = defaultdict(lambda: [[],0])
     n, _ = test.shape
-    print n
     for i in range(n):
         user_id = test.USER_ID_hash.iat[i]
         if test.PURCHASE_FLG.iat[i] == 1:
@@ -310,7 +294,10 @@ prediction_stat = get_performance_stat(test_users_purchase, test_users_recommend
 # out of recommended coupons a user has bought 1, 2, or 3 .... coupons etc.  
 prediction_summary = create_prediction_summary(prediction_stat)
 
-calculate_recommendation_accuracy(prediction_summary)
+coupons_bought_from_recommendation, total_coupons_bought, coupons_bought_from_recommendation_user_not_in_training, \
+             total_coupon_bought_user_not_in_training = calculate_recommendation_accuracy(prediction_summary)
+percentage_accuracy = coupons_bought_from_recommendation*100/total_coupons_bought
+print percentage_accuracy
              
               
 # plot the result
@@ -866,14 +853,24 @@ plt.show()
 #            break
 #    return P, Q.T
 
+
+
+#def create_rating_matrix2(train):
+#    train = train.sort_values(by = 'PURCHASE_FLG', ascending = False)
+#    train = train.drop_duplicates(subset = ['USER_ID_hash', 'VIEW_COUPON_ID_hash'])
+#    train['rating'] = -1
+#    ind_seen = train.PURCHASE_FLG == 0
+#    ind_pur = train.PURCHASE_FLG == 1
+#    train.loc[ind_seen, 'rating'] = 0.7
+#    train.loc[ind_pur, 'rating'] = 1
+#    rating_matrix = train.pivot(index = 'USER_ID_hash', columns = 'VIEW_COUPON_ID_hash', values = 'rating')
+#    rating_matrix = rating_matrix.fillna(value = -1)
+#    return rating_matrix    
+
 #rating_matrix = create_rating_matrix2(train)
 #R = rating_matrix.values 
 #W, H = matrix_factorization(R)
 #R_full = np.dot(W,H.T)
-
-
-
-
 
 
 
