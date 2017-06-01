@@ -73,7 +73,7 @@ def get_users_with_at_least_one_purchase(n=100):
     ind_pur = coupon_visit_train.PURCHASE_FLG == 1
     user_ids = coupon_visit_train.loc[ind_pur].USER_ID_hash.unique()
     n_users = len(user_ids)
-    ind = np.random.choice(range(n_users), size = n)
+    ind = np.random.choice(range(n_users), size = n, replace = False)
     return user_ids[ind]
     
 def get_visit_data_for_users_with_purchase(users_with_purchase):
