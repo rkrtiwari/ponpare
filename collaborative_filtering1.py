@@ -361,9 +361,10 @@ plt.hist(prediction_summary['intraining']['zero_right'], align = 'left', bins = 
 plt.title(title)
 plt.xlabel("Number of purchases")
 plt.ylabel("Number of users")
+plt.yticks([0,5,10,15,20])
 plt.show()
 
-# one match popular item recommendation, test user in training data
+# one match  test user in training data
 title1 = 'Number of items that users bought from the recommended list = 1\n'
 title2 = 'Number of such users: %d' %(len(prediction_summary['intraining']['one_right']))
 title = title1 + str(title2)
@@ -371,21 +372,22 @@ plt.hist(prediction_summary['intraining']['one_right'], align = 'left', bins = [
          rwidth = 0.9, normed = False)
 plt.title(title)
 plt.xlabel("Number of purchases")
+plt.xticks([0,1,2,3,4,5,6,7,8,9,10,11,12])
 plt.ylabel("Number of users")
 plt.savefig("fig1.png")
 plt.show()
 
-# one match, test user in training data
-title1 = 'Number of items that users bought from the recommended list = 1\n'
-title2 = 'Number of such users: %d' %(len(prediction_summary_top_items['intraining']['one_right']))
-title = title1 + str(title2)
-plt.hist(prediction_summary_top_items['intraining']['one_right'], align = 'left', bins = [1,2,3,4,5,6,7,8,9,10,11,12],
-         rwidth = 0.9, normed = False)
-plt.title(title)
-plt.xlabel("Number of purchases")
-plt.ylabel("Number of users")
-plt.savefig("fig1.png")
-plt.show()
+# one match,popular item recommendation test user in training data
+#title1 = 'Number of items that users bought from the recommended list = 1\n'
+#title2 = 'Number of such users: %d' %(len(prediction_summary_top_items['intraining']['one_right']))
+#title = title1 + str(title2)
+#plt.hist(prediction_summary_top_items['intraining']['one_right'], align = 'left', bins = [1,2,3,4,5,6,7,8,9,10,11,12],
+#         rwidth = 0.9, normed = False)
+#plt.title(title)
+#plt.xlabel("Number of purchases")
+#plt.ylabel("Number of users")
+#plt.savefig("fig1.png")
+#plt.show()
 
 
 
@@ -398,6 +400,7 @@ plt.hist(prediction_summary['intraining']['two_right'], align = 'left', bins = [
 plt.title(title)
 plt.xlabel("Number of purchases")
 plt.ylabel("Number of users")
+plt.yticks([0,1,2])
 plt.savefig("fig2.png")
 plt.show()           
 
@@ -410,6 +413,7 @@ plt.hist(prediction_summary['intraining']['three_right'], align = 'left', bins =
 plt.title(title)
 plt.xlabel("Number of purchases")
 plt.ylabel("Number of users")
+plt.yticks([0,1])
 plt.show()             
                
 # zero match, test user not in training data           
