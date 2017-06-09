@@ -143,8 +143,8 @@ def substitute_coupon_id_with_cluster_id(coupon_visit_selected_users):
         coupon_id = coupon_visit_selected_users.VIEW_COUPON_ID_hash.iat[i]
         coupon_visit_selected_users.VIEW_COUPON_ID_hash.iat[i] = coupon_id_to_clust_dict[coupon_id]
     coupon_visit_selected_users = coupon_visit_selected_users.sort_values(by = 'PURCHASE_FLG', ascending = False)
-#    coupon_visit_selected_users = coupon_visit_selected_users.drop_duplicates(subset = 
-#    ['USER_ID_hash', 'VIEW_COUPON_ID_hash'], keep = 'first') 
+ #   coupon_visit_selected_users = coupon_visit_selected_users.drop_duplicates(subset = 
+ #   ['USER_ID_hash', 'VIEW_COUPON_ID_hash'], keep = 'first') 
     columns_to_keep = ['USER_ID_hash', 'VIEW_COUPON_ID_hash', 'PURCHASE_FLG']
     return coupon_visit_selected_users[columns_to_keep]
 
@@ -188,29 +188,19 @@ def item_purchased(train, test):
 # create rating matrix. Maybe create later. Ensure that you normalize the rating
 # matrix values
 ###############################################################################
-def create_rating_matrix(train):
-    train1 = train.copy()
-    train1 = train1.sort_values(by = 'PURCHASE_FLG', ascending = False)
-    train1 = train1.drop_duplicates(subset = ['USER_ID_hash', 'VIEW_COUPON_ID_hash'])
-    train1.loc['rating'] = 0.25
-    ind_seen = train1.PURCHASE_FLG == 0
-    ind_pur = train1.PURCHASE_FLG == 1
-    train1.loc[ind_seen, 'rating'] = 0.7
-    train1.loc[ind_pur, 'rating'] = 1
-    rating_matrix = train1.pivot(index = 'USER_ID_hash', columns = 'VIEW_COUPON_ID_hash', values = 'rating')
-    rating_matrix = rating_matrix.fillna(value = 0.25)
-    return rating_matrix
-
-
 def create_rating_matrix1(train):
     train1 = train.copy()
+    train1['rating'] = 0.00
+    print "rating column created"
     n_purchase = np.sum(train1.PURCHASE_FLG == 1)
     n_view = np.sum(train1.PURCHASE_FLG == 0)
     view_rating = n_purchase/n_view
     ind = train1.PURCHASE_FLG == 0
-    train1.PURCHASE_FLG.loc[ind] = view_rating
+    train1.rating.loc[ind] = view_rating
+    ind = train1.PURCHASE_FLG == 1
+    train1.rating.loc[ind] = 1                     
     train1 = train1.groupby(by = ['USER_ID_hash', 'VIEW_COUPON_ID_hash'], as_index = False ).sum()
-    rating_matrix = train1.pivot(index = 'USER_ID_hash', columns = 'VIEW_COUPON_ID_hash', values = 'PURCHASE_FLG')
+    rating_matrix = train1.pivot(index = 'USER_ID_hash', columns = 'VIEW_COUPON_ID_hash', values = 'rating')
     rating_matrix = rating_matrix.fillna(value = 0.0)
     return rating_matrix
     
