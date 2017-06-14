@@ -9,18 +9,14 @@ Created on Fri Jun 09 13:57:56 2017
 ###############################################################################
 import os
 import pandas as pd
-import numpy as np
-import pickle
-import content_filtering_functions as conf
-from collections import defaultdict 
-reload(conf)
 
 ###############################################################################
 # move to appropriate directory
 ###############################################################################
 os.getcwd()
-new_dir = os.path.join("Documents", "ponpare")
+new_dir = os.path.join("Documents", "ponpare", "content_filtering")
 os.chdir(new_dir)
+os.listdir(".")
 
 ###############################################################################
 # setting display options
@@ -31,25 +27,24 @@ pd.set_option('expand_frame_repr', False)
 ###############################################################################
 # import the content filtering module
 ###############################################################################
-user_list, coupon_list_train = conf.load_input_files()
-conf.create_user_categorical_variable(user_list)
-conf.create_coupon_categorical_variable(coupon_list_train)
-coupon_purchase_data =  conf.get_coupon_purchase_data(user_list, coupon_list_train)
-coupon_cond_prob = conf.get_conditional_probability(coupon_purchase_data, user_list, 
-                                               coupon_list_train)
-user_content_vector_dict = conf.create_user_vector_dict(user_list) 
-user_content_vector_dict = pickle.load(open('user_content_vector_dict.pkl','rb'))
-coupon_content_vector_dict = conf.create_coupon_vector_dict(coupon_list_train, coupon_cond_prob)
-coupon_content_vector_dict = pickle.load(open('coupon_content_vector_dict.pkl','rb')) 
-purchase_area = conf.get_user_purchase_area(n = 3)
-purchase_area1 = pickle.load(open('purchase_area_dict.pkl','rb'))
+import content_filtering_functions as conf
+reload(conf)
 
-train, test = conf.create_train_test_set(n_users = 100, seed_value = 10)
-train_users = train.USER_ID_hash.unique().tolist()
-test_users = test.USER_ID_hash.unique().tolist()
+###############################################################################
+# find the recommendation and accuracy for the same set of users that was used
+# in the collaborative filtering
+###############################################################################
+coupon_id_to_clust_id_dict, coupon_clust_def_dict = conf.get_cluster_info()
+user_content_vector_dict = conf.get_user_content_vector()
+coupon_content_vector_dict = conf.get_coupon_content_vector()
 
-user_info = conf.get_a_user(user_list, user_content_vector_dict, test)
-recommended_coupons = conf.get_recommendation(user_info, coupon_content_vector_dict, purchase_area)
+train, test = conf.create_train_test_set(n_users = 1000, seed_value = 10)
+
+test_user_purchase_dict = conf.get_purchased_items_test_users(test)
+test_user_recommendation_dict = conf.get_recommendation(test, coupon_content_vector_dict, user_content_vector_dict)
+conf.calculate_percentage_accuracy(test_user_recommendation_dict, test_user_purchase_dict)
+
+
 
 
 
