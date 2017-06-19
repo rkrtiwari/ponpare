@@ -17,6 +17,8 @@ import matplotlib.pyplot as plt
 from itertools import chain
 import pickle
 
+
+
 ###############################################################################
 # load  coupon data
 ###############################################################################
@@ -148,19 +150,43 @@ def substitute_coupon_id_with_cluster_id(coupon_visit_selected_users):
     columns_to_keep = ['USER_ID_hash', 'VIEW_COUPON_ID_hash', 'PURCHASE_FLG']
     return coupon_visit_selected_users[columns_to_keep]
 
-def create_train_test_set(n_users = 100, seed_value = 10):
+# used for creating rating matrix for Sukumar
+def create_train_test_set1(n_users = 100, seed_value = 10):
     users_with_purchase = get_users_with_at_least_one_purchase(n_users, seed_value)
     coupon_visit_selected_users = get_visit_data_for_users_with_purchase(users_with_purchase)   
     coupon_visit_selected_users = substitute_coupon_id_with_cluster_id(coupon_visit_selected_users)    
-    n_obs = len(coupon_visit_selected_users)
-    np.random.seed(100)
-#    np.random.seed(seed_value)
-    ind_train = np.random.choice(n_obs, size = int(0.7*n_obs), replace = False)
-    ind_test = [x for x in range(n_obs) if x not in ind_train]
-    train = coupon_visit_selected_users.iloc[ind_train]
-    test = coupon_visit_selected_users.iloc[ind_test]
-    return train, test        
+#    n_obs = len(coupon_visit_selected_users)
+#    np.random.seed(100)
+##    np.random.seed(seed_value)
+#    ind_train = np.random.choice(n_obs, size = int(0.7*n_obs), replace = False)
+#    ind_test = [x for x in range(n_obs) if x not in ind_train]
+#    train = coupon_visit_selected_users.iloc[ind_train]
+#    test = coupon_visit_selected_users.iloc[ind_test]
+    return coupon_visit_selected_users 
 
+# standard function to create training and testing data set
+def create_train_test_set(n_users = 100, seed_value = 10):
+    fname_train = "train_" + "user_"+ str(n_users) + "_seed_" + str(seed_value) + ".pkl"
+    fname_test = "test_" + "user_"+ str(n_users) + "_seed_" + str(seed_value) + ".pkl"
+    if os.path.isfile(fname_train):
+        train = pickle.load(open(fname_train,'rb'))
+        test = pickle.load(open(fname_test,'rb'))
+    else:
+        users_with_purchase = get_users_with_at_least_one_purchase(n_users, seed_value)
+        coupon_visit_selected_users = get_visit_data_for_users_with_purchase(users_with_purchase)   
+        coupon_visit_selected_users = substitute_coupon_id_with_cluster_id(coupon_visit_selected_users)
+        np.random.seed(100)
+        n_obs = len(coupon_visit_selected_users)
+        ind_train = np.random.choice(n_obs, size = int(0.7*n_obs), replace = False)
+        ind_test = [x for x in range(n_obs) if x not in ind_train]
+        train = coupon_visit_selected_users.iloc[ind_train]
+        test = coupon_visit_selected_users.iloc[ind_test]
+        pickle.dump(train, open(fname_train, 'wb '))
+        pickle.dump(test, open(fname_test, 'wb '))
+    return train, test
+        
+        
+        
 ###############################################################################
 # get items purchase during training and testing
 ###############################################################################    
@@ -189,6 +215,43 @@ def item_purchased(train, test):
 # matrix values
 ###############################################################################
 def create_rating_matrix1(train):
+    train1 = train.copy()
+    train1['rating'] = 0.00
+    print "rating column created"
+    n_purchase = np.sum(train1.PURCHASE_FLG == 1)
+    n_view = np.sum(train1.PURCHASE_FLG == 0)
+    view_rating = n_purchase/n_view
+    ind = train1.PURCHASE_FLG == 0
+    train1.rating.loc[ind] = view_rating
+    ind = train1.PURCHASE_FLG == 1
+    train1.rating.loc[ind] = 1                     
+    train1 = train1.groupby(by = ['USER_ID_hash', 'VIEW_COUPON_ID_hash'], as_index = False ).sum()
+    rating_matrix = train1.pivot(index = 'USER_ID_hash', columns = 'VIEW_COUPON_ID_hash', values = 'rating')
+    rating_matrix = rating_matrix.fillna(value = 0.0)
+    return rating_matrix
+
+
+def create_rating_matrix2(train):
+    train1 = train.copy()
+    train1['rating'] = 0.00
+    print "rating column created"
+    n_purchase = np.sum(train1.PURCHASE_FLG == 1)
+    n_view = np.sum(train1.PURCHASE_FLG == 0)
+    view_rating = n_purchase/n_view
+    ind = train1.PURCHASE_FLG == 0
+    train1.loc[ind, "rating"] = view_rating
+    ind = train1.PURCHASE_FLG == 1
+    train1.loc[ind, "rating"] = 1
+    train2 = train1.groupby(by = ['USER_ID_hash', 'VIEW_COUPON_ID_hash', 'PURCHASE_FLG'], as_index = False ).sum()
+    ind = train2.rating > 10
+    train2.loc[ind, 'rating'] = 10
+    train3 = train2.groupby(by = ['USER_ID_hash', 'VIEW_COUPON_ID_hash'], as_index = False ).sum()
+    rating_matrix = train3.pivot(index = 'USER_ID_hash', columns = 'VIEW_COUPON_ID_hash', values = 'rating')
+    rating_matrix = rating_matrix.fillna(value = 0.0)
+    return rating_matrix
+
+
+def create_rating_matrix3(train):
     train1 = train.copy()
     train1['rating'] = 0.00
     print "rating column created"
