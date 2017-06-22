@@ -119,6 +119,7 @@ def get_user_n_coupon_info_for_purchased_coupons():
 # needs some modification
 ###############################################################################
 def get_conditional_probability():
+    print "using conditional probability 1"
     
     coupon_purchase_data = get_user_n_coupon_info_for_purchased_coupons()
     user_list = create_user_categorical_variable()
@@ -161,6 +162,60 @@ def get_conditional_probability():
                 'coupon_feature_value', 'user_feature_value'],  inplace = True)
     return coupon_cond_prob
 
+def get_conditional_probability2():
+    print "using conditional probability 2"
+    
+    coupon_purchase_data = get_user_n_coupon_info_for_purchased_coupons()
+    
+    
+    c_features = ["GENRE_NAME", "price_rate_cat", "price_cat"]
+    u_features = ["age_cat", "SEX_ID"]
+    coupon_cond_prob = pd.DataFrame(columns = ('coupon_feature', 'user_feature', 
+                                           'coupon_feature_value', 'user_feature_value',
+                                           'cond_prob'))
+    i = 0
+    for c_feature in c_features:
+        c_feature_values = coupon_purchase_data[c_feature].unique()
+        c_value_count =  coupon_purchase_data[c_feature].value_counts()
+        c_total = sum(c_value_count)
+        for c_feature_value in c_feature_values:
+            c_prob =  c_value_count.loc[c_feature_value]/c_total
+            for u_feature in u_features:
+                u_feature_values = coupon_purchase_data[u_feature].unique()
+                u_value_count =  coupon_purchase_data[u_feature].value_counts()
+                u_total = sum(u_value_count)
+                
+                ind = coupon_purchase_data[c_feature] == c_feature_value
+                u_value_count_cond =  coupon_purchase_data[ind][u_feature].value_counts()
+                u_total_cond = sum(u_value_count_cond)
+                
+                for u_feature_value in u_feature_values:
+                    u_prob =  u_value_count.loc[u_feature_value]/u_total
+                    if u_feature_value not in u_value_count_cond:
+                        coupon_cond_prob.loc[i] = [c_feature, u_feature, c_feature_value,
+                                    u_feature_value, 0.00000001]
+                        continue
+                    u_prob_cond = u_value_count_cond.loc[u_feature_value]/u_total_cond
+                    post_prob = c_prob*u_prob_cond/u_prob
+                    coupon_cond_prob.loc[i] = [c_feature, u_feature, c_feature_value,
+                                    u_feature_value, post_prob]
+                    i += 1
+    coupon_cond_prob.sort_values(by = ['coupon_feature', 'user_feature', 
+                'coupon_feature_value', 'user_feature_value'],  inplace = True)
+    return coupon_cond_prob
+
+#
+#c_features = ["GENRE_NAME", "price_rate_cat", "price_cat"]
+#u_features = ["age_cat", "SEX_ID"]
+#coupon_purchase_data = get_user_n_coupon_info_for_purchased_coupons()
+#c_feature_value = coupon_purchase_data.GENRE_NAME.unique().tolist()
+#u_feature_value = coupon_purchase_data.SEX_ID.unique().tolist()
+#
+#coupon_purchase_data.GENRE_NAME.value_counts()
+#coupon_purchase_data.SEX_ID.value_counts()
+#u_feature_value
+
+
 
 def coupon_feature_to_user_vector(coupon_feature_names, user_features, coupon_cond_prob):
     coupon_user_content = np.zeros(8)
@@ -186,7 +241,7 @@ def coupon_feature_to_user_vector(coupon_feature_names, user_features, coupon_co
 
 def create_coupon_vector_dict():
     coupon_list_train = create_coupon_categorical_variable()
-    coupon_cond_prob = get_conditional_probability()
+    coupon_cond_prob = get_conditional_probability2()
     coupon_id_to_clust_id_dict, _ = get_cluster_info()
     
     n, _ = coupon_list_train.shape
@@ -338,6 +393,16 @@ def create_train_test_set(n_users = 100, seed_value = 10):
     test = coupon_visit_selected_users.iloc[ind_test]
     return train, test 
 
+def get_train_test_set(n_users = 100, seed_value = 10):
+    fname =  "user_"+ str(n_users) + "_seed_" + str(seed_value) + ".pkl"
+    if os.path.isfile(fname):
+        train, test = pickle.load(open(fname,'rb'))
+    else:
+        train, test = create_train_test_set(n_users = n_users, seed_value = seed_value)
+        pickle.dump((train, test), open(fname, 'wb '))
+    return train, test
+        
+    
 
 def get_purchased_items_test_users(test):
     ind_pur = test.PURCHASE_FLG == 1
