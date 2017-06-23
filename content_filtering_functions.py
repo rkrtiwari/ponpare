@@ -119,51 +119,8 @@ def get_user_n_coupon_info_for_purchased_coupons():
 # needs some modification
 ###############################################################################
 def get_conditional_probability():
-    print "using conditional probability 1"
     
-    coupon_purchase_data = get_user_n_coupon_info_for_purchased_coupons()
-    user_list = create_user_categorical_variable()
-    coupon_list_train = create_coupon_categorical_variable()
-    
-    
-    c_features = ["GENRE_NAME", "price_rate_cat", "price_cat"]
-    u_features = ["age_cat", "SEX_ID"]
-    coupon_cond_prob = pd.DataFrame(columns = ('coupon_feature', 'user_feature', 
-                                           'coupon_feature_value', 'user_feature_value',
-                                           'cond_prob'))
-    i = 0
-    for c_feature in c_features:
-        c_feature_values = coupon_list_train[c_feature].unique()
-        c_value_count =  coupon_list_train[c_feature].value_counts()
-        c_total = sum(c_value_count)
-        for c_feature_value in c_feature_values:
-            c_prob =  c_value_count.loc[c_feature_value]/c_total
-            for u_feature in u_features:
-                u_feature_values = user_list[u_feature].unique()
-                u_value_count =  user_list[u_feature].value_counts()
-                u_total = sum(u_value_count)
-                
-                ind = coupon_purchase_data[c_feature] == c_feature_value
-                u_value_count_cond =  coupon_purchase_data[ind][u_feature].value_counts()
-                u_total_cond = sum(u_value_count_cond)
-                
-                for u_feature_value in u_feature_values:
-                    u_prob =  u_value_count.loc[u_feature_value]/u_total
-                    if u_feature_value not in u_value_count_cond:
-                        coupon_cond_prob.loc[i] = [c_feature, u_feature, c_feature_value,
-                                    u_feature_value, 0.00000001]
-                        continue
-                    u_prob_cond = u_value_count_cond.loc[u_feature_value]/u_total_cond
-                    post_prob = c_prob*u_prob_cond/u_prob
-                    coupon_cond_prob.loc[i] = [c_feature, u_feature, c_feature_value,
-                                    u_feature_value, post_prob]
-                    i += 1
-    coupon_cond_prob.sort_values(by = ['coupon_feature', 'user_feature', 
-                'coupon_feature_value', 'user_feature_value'],  inplace = True)
-    return coupon_cond_prob
-
-def get_conditional_probability2():
-    print "using conditional probability 2"
+    print "calculating conditional probability"
     
     coupon_purchase_data = get_user_n_coupon_info_for_purchased_coupons()
     
@@ -194,6 +151,7 @@ def get_conditional_probability2():
                     if u_feature_value not in u_value_count_cond:
                         coupon_cond_prob.loc[i] = [c_feature, u_feature, c_feature_value,
                                     u_feature_value, 0.00000001]
+                        i += 1
                         continue
                     u_prob_cond = u_value_count_cond.loc[u_feature_value]/u_total_cond
                     post_prob = c_prob*u_prob_cond/u_prob
@@ -204,66 +162,27 @@ def get_conditional_probability2():
                 'coupon_feature_value', 'user_feature_value'],  inplace = True)
     return coupon_cond_prob
 
-#
-#c_features = ["GENRE_NAME", "price_rate_cat", "price_cat"]
-#u_features = ["age_cat", "SEX_ID"]
-#coupon_purchase_data = get_user_n_coupon_info_for_purchased_coupons()
-#c_feature_value = coupon_purchase_data.GENRE_NAME.unique().tolist()
-#u_feature_value = coupon_purchase_data.SEX_ID.unique().tolist()
-#
-#coupon_purchase_data.GENRE_NAME.value_counts()
-#coupon_purchase_data.SEX_ID.value_counts()
-#u_feature_value
-
-
-
-def coupon_feature_to_user_vector(coupon_feature_names, user_features, coupon_cond_prob):
-    coupon_user_content = np.zeros(8)
-    for cf_name, u_f in zip(coupon_feature_names,user_features):
-        ind1 = coupon_cond_prob.coupon_feature_value == cf_name
-        ind2 = coupon_cond_prob.user_feature == u_f
-        ind = ind1 & ind2
-        df = coupon_cond_prob.loc[ind]
-        
-        if u_f == 'SEX_ID':
-            u_v = df.cond_prob.values
-            fill_array = np.zeros(8-len(u_v))
-            reversed_uv = u_v[::-1]            
-            uv_full = np.concatenate((reversed_uv, fill_array))
-            coupon_user_content += uv_full
-            
-        else:
-            u_v = df.cond_prob.values 
-            fill_array = np.zeros(8-len(u_v))
-            uv_full = np.concatenate((fill_array, u_v))
-            coupon_user_content += uv_full            
-    return coupon_user_content
 
 def create_coupon_vector_dict():
-    coupon_list_train = create_coupon_categorical_variable()
-    coupon_cond_prob = get_conditional_probability2()
-    coupon_id_to_clust_id_dict, _ = get_cluster_info()
+    print "creating coupon vector dictionary"
     
-    n, _ = coupon_list_train.shape
-    for i in range(n):
-        coupon_id = coupon_list_train.COUPON_ID_hash.iloc[i]
-        cluster_id = coupon_id_to_clust_id_dict[coupon_id]
-        col_ind = coupon_list_train.columns.get_loc("COUPON_ID_hash")
-        coupon_list_train.iloc[i, col_ind] = cluster_id
-    coupon_list_train = coupon_list_train.drop_duplicates(subset = 'COUPON_ID_hash')       
+    _ , coupon_clust_def_dict = get_cluster_info()
+    coupon_cond_prob = get_conditional_probability()
+    
     coupon_content_vector_dict = {}
-    n_coupons, _ = coupon_list_train.shape
-    user_features = ['SEX_ID','age_cat', 'age_cat']
-    print n_coupons
-    for i in xrange(n_coupons):
-        c_id = coupon_list_train.COUPON_ID_hash.iat[i]
-        genre = coupon_list_train.GENRE_NAME.iat[i]
-        price = coupon_list_train.price_cat.iat[i]
-        discount = coupon_list_train.price_rate_cat.iat[i]
-        c_features = [genre, price, discount]
-        c_u_vector = coupon_feature_to_user_vector(c_features, user_features, coupon_cond_prob)
-        coupon_content_vector_dict[c_id] = c_u_vector
-    return coupon_content_vector_dict
+    for key, value in coupon_clust_def_dict.items():
+        genre, price, discount = value
+        ind = coupon_cond_prob.coupon_feature_value == genre
+        g_v = coupon_cond_prob.cond_prob.loc[ind].values
+        ind = coupon_cond_prob.coupon_feature_value == price
+        p_v = coupon_cond_prob.cond_prob.loc[ind].values
+        ind = coupon_cond_prob.coupon_feature_value == discount
+        d_v = coupon_cond_prob.cond_prob.loc[ind].values
+        i_v = np.dot(g_v,p_v)
+        v = np.dot(i_v,d_v)
+        coupon_content_vector_dict[key] = v
+    return coupon_content_vector_dict                
+                
 
 def get_coupon_content_vector():
     if os.path.isfile('coupon_content_vector_dict.pkl'):
@@ -287,28 +206,21 @@ def get_coupon_id_cluster(X):
     columns_to_keep = ['COUPON_ID_hash', 'coupon_cat']    
     return X[columns_to_keep]
 
-#2. given a data frame that has information about the coupon cluster, this function
-# returns a dictionary that maps all the coupon ids into 
-def get_coupon_id_to_cluster_dict(coupon_id_cluster_df):
-    coupon_id_to_clust_dict = {}
-    n_row, _ = coupon_id_cluster_df.shape
-    for i in xrange(n_row):
-        key = coupon_id_cluster_df.iat[i,0]
-        value = coupon_id_cluster_df.iat[i,1]
-        coupon_id_to_clust_dict[key] = value
-    return coupon_id_to_clust_dict
-
-#3. use the above two functons to create a dictionary that maps coupons ids to 
+#2. use the above function to create a dictionary that maps coupons ids to 
 # cluster ids
 def create_coupon_id_to_cluster_id_dict():
     coupon_list_train = create_coupon_categorical_variable()
     coupon_list_train = coupon_list_train.sort_values(by = 'COUPON_ID_hash')
     coupon_id_cluster_df = coupon_list_train.groupby(by = ['GENRE_NAME','price_cat', 'price_rate_cat']).apply(get_coupon_id_cluster)
-    coupon_id_to_clust_id_dict = get_coupon_id_to_cluster_dict(coupon_id_cluster_df)
+    coupon_id_to_clust_id_dict = {}
+    n_row, _ = coupon_id_cluster_df.shape
+    for i in range(n_row):
+        key = coupon_id_cluster_df.iat[i,0]
+        value = coupon_id_cluster_df.iat[i,1]
+        coupon_id_to_clust_id_dict[key] = value
     return coupon_id_to_clust_id_dict
     
-
-# 4. save the feature of all the coupon clusters in a dictionary
+# 3. save the feature of all the coupon clusters in a dictionary
 def create_coupon_clust_def_dict():
     coupon_list_train = create_coupon_categorical_variable()
     coupon_list_train = coupon_list_train.sort_values(by = ['COUPON_ID_hash'])
@@ -323,7 +235,6 @@ def create_coupon_clust_def_dict():
         coupon_clust_def_dict[coupon_id] = [genre, price, discount]
     return coupon_clust_def_dict
         
-
 
 ###############################################################################
 # get the dictionary that maps coupon id to coupon cluster and coupon cluster to 
@@ -402,7 +313,6 @@ def get_train_test_set(n_users = 100, seed_value = 10):
         pickle.dump((train, test), open(fname, 'wb '))
     return train, test
         
-    
 
 def get_purchased_items_test_users(test):
     ind_pur = test.PURCHASE_FLG == 1
@@ -436,7 +346,6 @@ def get_recommendation(test, coupon_content_vector_dict, user_content_vector_dic
     user_ids = test.USER_ID_hash.unique()
     n = len(user_ids)
     test_user_recommendation = {}    
-#    test_user_recommendation = {k: [] for k in user_ids}
     for i in range(n):
         user_id = user_ids[i]
         user_vector = user_content_vector_dict[user_id]
