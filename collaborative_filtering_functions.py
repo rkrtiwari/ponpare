@@ -16,6 +16,8 @@ from sklearn.decomposition import NMF
 import matplotlib.pyplot as plt
 from itertools import chain
 import pickle
+from scipy import linalg
+from numpy import dot
 
 
 
@@ -23,7 +25,7 @@ import pickle
 # load  coupon data
 ###############################################################################
 def load_coupon_data():
-    coupon_list_train = pd.read_csv("data/coupon_list_train.csv")
+    coupon_list_train = pd.read_csv("../data/coupon_list_train.csv")
     return coupon_list_train
 
 ###############################################################################
@@ -120,7 +122,7 @@ def get_cluster_info():
 # is gone. Need to refine so that multiple visit information is  preserved
 ###############################################################################
 def get_users_with_at_least_one_purchase(n=100, seed_value = 10):
-    coupon_visit_train = pd.read_csv("data/coupon_visit_train.csv")
+    coupon_visit_train = pd.read_csv("../data/coupon_visit_train.csv")
     ind_pur = coupon_visit_train.PURCHASE_FLG == 1
     user_ids = coupon_visit_train.loc[ind_pur].USER_ID_hash.unique()
     n_users = len(user_ids)
@@ -129,7 +131,7 @@ def get_users_with_at_least_one_purchase(n=100, seed_value = 10):
     return user_ids[ind]
 
 def get_visit_data_for_users_with_purchase(users_with_purchase):
-    coupon_visit_train = pd.read_csv("data/coupon_visit_train.csv")
+    coupon_visit_train = pd.read_csv("../data/coupon_visit_train.csv")
     columns_to_keep = ['PURCHASE_FLG', 'VIEW_COUPON_ID_hash', 'USER_ID_hash']
     ind = coupon_visit_train.USER_ID_hash.isin(users_with_purchase)
     coupon_visit_select_users = coupon_visit_train[columns_to_keep].loc[ind]   
@@ -184,9 +186,8 @@ def create_train_test_set(n_users = 100, seed_value = 10):
         pickle.dump(train, open(fname_train, 'wb '))
         pickle.dump(test, open(fname_test, 'wb '))
     return train, test
-        
-        
-        
+
+       
 ###############################################################################
 # get items purchase during training and testing
 ###############################################################################    
@@ -209,6 +210,51 @@ def item_purchased(train, test):
         coupon = test_purchase.VIEW_COUPON_ID_hash.iloc[i]
         purchase_dict["test"][user].append(coupon)
     return purchase_dict
+
+
+def item_viewed_purchased(train, test):
+    view_purchase_dict = {}
+    view_purchase_dict['train'] = {}
+    view_purchase_dict['test'] = {}
+    train = train.sort_values(by = 'PURCHASE_FLG', ascending = False)
+    train = train.drop_duplicates(subset = ['USER_ID_hash','VIEW_COUPON_ID_hash','PURCHASE_FLG'], keep = 'first')
+    test = test.sort_values(by = 'PURCHASE_FLG', ascending = False)
+    test = test.drop_duplicates(subset = ['USER_ID_hash', 'VIEW_COUPON_ID_hash', 'PURCHASE_FLG'], keep = 'first')
+    train_users = train.USER_ID_hash.unique().tolist()
+    test_users = test.USER_ID_hash.unique().tolist()
+    
+    n_train, _ = train.shape
+    n_test, _ = test.shape
+    
+    users = list(set(train_users + test_users))
+    for user in users:
+        view_purchase_dict['train'][user]= {}
+        view_purchase_dict['test'][user] = {}
+        view_purchase_dict['train'][user]['purchased'] = []
+        view_purchase_dict['train'][user]['viewed'] = []
+        view_purchase_dict['test'][user]['purchased'] = []
+        view_purchase_dict['test'][user]['viewed'] = []
+
+    for i in range(n_train):
+        user_id = train.USER_ID_hash.iat[i]
+        coupon_id = train.VIEW_COUPON_ID_hash.iat[i]
+        purchase_flg = train.PURCHASE_FLG.iat[i]
+        if purchase_flg == 1:
+            view_purchase_dict['train'][user_id]['purchased'].append(coupon_id)
+        if purchase_flg == 0:
+            view_purchase_dict['train'][user_id]['viewed'].append(coupon_id)
+            
+    for i in range(n_test):
+        user_id = test.USER_ID_hash.iat[i]
+        coupon_id = test.VIEW_COUPON_ID_hash.iat[i]
+        purchase_flg = test.PURCHASE_FLG.iat[i]
+        if purchase_flg == 1:
+            view_purchase_dict['test'][user_id]['purchased'].append(coupon_id)
+        if purchase_flg == 0:
+            view_purchase_dict['test'][user_id]['viewed'].append(coupon_id)
+    
+    return view_purchase_dict
+    
     
 ###############################################################################
 # create rating matrix. Maybe create later. Ensure that you normalize the rating
@@ -266,7 +312,65 @@ def create_rating_matrix3(train):
     rating_matrix = train1.pivot(index = 'USER_ID_hash', columns = 'VIEW_COUPON_ID_hash', values = 'rating')
     rating_matrix = rating_matrix.fillna(value = 0.0)
     return rating_matrix
+ 
     
+
+
+
+
+def nmf(X, latent_features, max_iter=10000, error_limit=1e-6, fit_error_limit=1e-6):
+    """
+    Decompose X to A*Y
+    """
+    eps = 1e-5
+    print 'Starting NMF decomposition with {} latent features and {} iterations.'.format(latent_features, max_iter)
+#    X = X.toarray()  # I am passing in a scipy sparse matrix
+
+    # mask
+    mask = np.sign(X)
+
+    # initial matrices. A is random [0,1] and Y is A\X.
+    rows, columns = X.shape
+    A = np.random.rand(rows, latent_features)
+    A = np.maximum(A, eps)
+
+    Y = linalg.lstsq(A, X)[0]
+    Y = np.maximum(Y, eps)
+
+    masked_X = mask * X
+    X_est_prev = dot(A, Y)
+    for i in range(max_iter):
+        # ===== updates =====
+        # Matlab: A=A.*(((W.*X)*Y')./((W.*(A*Y))*Y'));
+        top = dot(masked_X, Y.T)
+        bottom = (dot((mask * dot(A, Y)), Y.T)) + eps
+        A *= top / bottom
+
+        A = np.maximum(A, eps)
+        # print 'A',  np.round(A, 2)
+
+        # Matlab: Y=Y.*((A'*(W.*X))./(A'*(W.*(A*Y))));
+        top = dot(A.T, masked_X)
+        bottom = dot(A.T, mask * dot(A, Y)) + eps
+        Y *= top / bottom
+        Y = np.maximum(Y, eps)
+        # print 'Y', np.round(Y, 2)
+
+
+        # ==== evaluation ====
+        if i % 5 == 0 or i == 1 or i == max_iter:
+            print 'Iteration {}:'.format(i),
+            X_est = dot(A, Y)
+            err = mask * (X_est_prev - X_est)
+            fit_residual = np.sqrt(np.sum(err ** 2))
+            X_est_prev = X_est
+
+            curRes = linalg.norm(mask * (X - X_est), ord='fro')           
+            if (curRes < error_limit) or (fit_residual < fit_error_limit):
+                break
+    return A, Y
+
+
 ###############################################################################
 # get recommendation
 ###############################################################################
@@ -277,6 +381,21 @@ def create_final_rating_matrix(rating_matrix, n_comp = 5):
    H = model.components_
    R_full = np.dot(W,H)
    return R_full
+
+def create_final_rating_matrix_remove_missing(rating_matrix, n_comp = 5):
+   R = rating_matrix.values
+   W, H = nmf(R, latent_features = n_comp)
+   R_full = np.dot(W,H)
+   return R_full
+
+
+def create_final_rating_matrix_ikeda(rating_matrix, n_comp = 5):
+   R = rating_matrix.values
+   model = nmf(n_components= n_comp, init='random', random_state=0)
+   W = model.fit_transform(R)
+   H = model.components_
+   R_full = np.dot(W,H)
+   return R_full, W, H
 
 def get_rating_matrix_ind_for_test_user(test_user, rating_matrix):
     user_ids = rating_matrix.index.tolist()
