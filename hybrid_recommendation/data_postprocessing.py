@@ -9,7 +9,14 @@ Created on Mon Jul 03 12:08:30 2017
 ###############################################################################
 # import the required module
 ###############################################################################
-from __future__ import division    
+from __future__ import division 
+import subset_data as sd
+import create_training_test_data as cttd
+import data_preprocessing as dpre 
+import random  
+import collaborative_filtering_functions as colf
+import matplotlib.pyplot as plt
+import numpy as np
 ###############################################################################
 # get items purchase during training and testing
 ###############################################################################    
@@ -58,12 +65,12 @@ def item_viewed_purchased(train, test):
     return view_purchase_dict
 
 
-def calculate_percentage_accuracy(recommendations_dict, purchase_dict):
+def calculate_percentage_accuracy(recommendations_dict, view_purchase_dict):
     total_bought = 0
     total_correct_recommendation = 0
     for key in recommendations_dict:
         recommendation = recommendations_dict[key]
-        purchase = purchase_dict['test'][key]
+        purchase = view_purchase_dict['test'][key]['purchased']
         total_bought += len(purchase)
         correct_recommendation = [x for x in recommendation if x in purchase]
         total_correct_recommendation += len(correct_recommendation)
@@ -71,7 +78,7 @@ def calculate_percentage_accuracy(recommendations_dict, purchase_dict):
     return percentage_accuracy
 
 
-def create_groupwise_accuracy_report(recommendation_dict, view_purchase_dict):
+def create_groupwise_purchase_report(recommendation_dict, view_purchase_dict):
     purchased_in_training = []
     viewed_in_training = []
     not_in_training = []
@@ -105,6 +112,75 @@ def test_purchase_status_in_training_data(train, test):
                     unseen.append(item)
     return unseen, viewed, purchased
 
+def plot_groupwise_purchase_accuracy(train, test, test_user_recommendation_dict, view_purchase_dict):
+    unseen, viewed, purchased = test_purchase_status_in_training_data(train, test)
+    purchased_in_training, viewed_in_training, not_in_training = create_groupwise_purchase_report(test_user_recommendation_dict, view_purchase_dict)
+    per_accuracy_unseen = len(not_in_training)*100/len(unseen)
+    per_accuracy_viewed = len(viewed_in_training)*100/len(viewed)
+    per_accuracy_purchased = len(purchased_in_training)*100/len(purchased)
+    
+    bar_width = 0.25
+    index = np.arange(3)
+    y1 = [len(unseen), len(viewed), len(purchased)]
+    y2 = [len(not_in_training), len(viewed_in_training), len(purchased_in_training)]
+    plt.bar(index, y1, bar_width, label = 'purchased coupons in the test data') 
+    plt.bar(index+0.25, y2, bar_width, label = 'recommended coupons in the test data purchase')
+    plt.xticks(index, ('unseen', 'viewed only', 'purchased'))
+    plt.ylabel('Number of  Coupons') 
+    plt.legend() 
+    plt.show()
+    
+    y = [per_accuracy_unseen, per_accuracy_viewed, per_accuracy_purchased]
+    plt.bar(index, y, bar_width, color = 'r')
+    plt.xticks(index, ('unseen', 'viewed only', 'purchased')) 
+    plt.ylabel('Percentage Accuracy')
+    plt.xlim((-0.5, 2.75))
+    plt.show()
+    
+    
+#plt.title('Percentage Accuracy in different categories')
+
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+
+
+
+
+
+
+
+ 
+ 
+    
+    
+    
+    
+    
+
+
+ 
+
+
+
+#plt.title('Status of purchased coupons during the \n test period in the traing data') 
+
+    
+
+
+    
+    
+    
+    
+
 
 
 # need to check
@@ -128,7 +204,28 @@ def prediction_item_comparison(cf_recommendation_dict, conf_recommendation_dict,
                     none.append(item)
     return common, only_cf, only_conf, none
 
-
+if __name__ == "__main__":
+    seed_value = random.choice(range(9999))
+    coupon_visit_subset = sd.create_data_subset(n_users = 5, min_purchase = 1, max_purchase = 5, seed_value = seed_value)
+    coupon_clust_visit = dpre.substitute_coupon_id_with_cluster_id(coupon_visit_subset)
+    train, test = cttd.create_train_test_set(coupon_clust_visit, train_frac = 0.7, seed_value = 10)
+    test_user_recommendation_dict = colf.get_collaborative_filtering_recommendation(train, test)
+    view_purchase_dict = item_viewed_purchased(train, test)
+    test_users = test.USER_ID_hash.unique()
+    for user in test_users:
+        print "user_id:", user
+        print "user purchase:", view_purchase_dict['test'][user]['purchased']
+        print "user recommendation:", test_user_recommendation_dict[user]
+        print "\n\n"
+        
+    per_accuracy = calculate_percentage_accuracy(test_user_recommendation_dict, view_purchase_dict)
+    print "percentage accuracy:", per_accuracy
+    unseen, viewed, purchased = test_purchase_status_in_training_data(train, test)
+    print len(unseen), len(viewed), len(purchased)
+    purchased_in_training, viewed_in_training, not_in_training = create_groupwise_purchase_report(test_user_recommendation_dict, view_purchase_dict)
+    print len(purchased_in_training), len(viewed_in_training), len(not_in_training)
+    
+    
 
 
 
