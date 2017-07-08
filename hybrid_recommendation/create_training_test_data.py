@@ -9,6 +9,8 @@ import subset_data as sd
 import numpy as np
 import os
 import pickle
+import random
+import data_loading as dl
 
 def create_train_test_set(df, train_frac = 0.7, seed_value = 10):
     n_users = len(df.USER_ID_hash.unique())
@@ -29,8 +31,49 @@ def create_train_test_set(df, train_frac = 0.7, seed_value = 10):
     return train, test
 
 
-if __name__ == '__main__':
-    df = sd.create_data_subset(n_users = 100, min_purchase = 1, max_purchase = 20000, seed_value = 10)
-    train, test = create_train_test_set(df, train_frac = 0.7, seed_value = 10)
+if __name__ == '__main__': 
+    n_users = 10
+    seed_value = random.choice(range(1000000))  
+    df = sd.create_data_subset(n_users = n_users, min_purchase = 1, max_purchase = 20000, seed_value = seed_value)
+    
+    users = df.USER_ID_hash.unique().tolist()
+    coupon_visit = dl.load_coupon_visit_data()
+    ind = coupon_visit.USER_ID_hash.isin(users)
+    n_users = len(users)
+    fname_train = "intermediate_result/train_" + "user_"+ str(n_users) + "_seed_" + str(seed_value) + ".pkl"
+    fname_test = "intermediate_result/test_" + "user_"+ str(n_users) + "_seed_" + str(seed_value) + ".pkl"
+    fnames = [fname_train, fname_test]
+    
+    for fname in fnames:
+        if os.path.isfile(fname):
+            os.remove(fname)
+#            print "removed: ", fname
+    
+    
+    train, test = create_train_test_set(df, train_frac = 0.7, seed_value = seed_value)
+    df_users = df.USER_ID_hash.unique().tolist()
+    train_users = train.USER_ID_hash.unique().tolist()
+    test_users = test.USER_ID_hash.unique().tolist()
+    train_test_users = list(set(train_users + test_users))
+    
+    print "subset data shape:", df.shape
+    print "train, test shape:", train.shape, test.shape
+    print "\n"
+    print "rows in subset data:", df.shape[0]
+    print "sum of rows in train and test:", train.shape[0] + test.shape[0]
+    print "number of rows for chosen users in the original view/purchase data:", np.sum(ind)
+    print "\n"
+    train_per = train.shape[0]/(train.shape[0] + test.shape[0])
+    print "train rows percentage:", train_per*100
+    test_per = test.shape[0]/(train.shape[0] + test.shape[0])
+    print "test rows percentage:", test_per*100
+    print "train + test percentage:", (train_per + test_per)*100
+    print "\n"
+    print "number of unique users in train, test data:", len(train_users), len(test_users)
+    print "unique users in train, test data combined:", len(train_test_users)
+    print "unique users in the subset data:", len(df_users)
+    
+    
+    
     
 
