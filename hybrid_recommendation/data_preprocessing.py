@@ -10,6 +10,7 @@ import os
 import pickle
 import data_loading as dl
 import subset_data as sd
+import random
 
 ###############################################################################
 # create coupon categorical variable
@@ -120,20 +121,74 @@ def get_coupon_clust_def_dict():
     return coupon_clust_def_dict
 
 
-def test_coupon_clust_def_dict(coupon_clust_def_dict):
-    for key, values in coupon_clust_def_dict.items():
-        genre, price, discount = values
-        print key
-        print genre, price, discount
-        print '\n'
         
 
 if __name__ == '__main__':
-    coupon_list_train = dl.load_coupon_data()   
-    coupon_clust_def_dict = get_coupon_clust_def_dict(coupon_list_train)
-    test_coupon_clust_def_dict(coupon_clust_def_dict)
+    coupon_list_train = dl.load_coupon_data() 
+    coupon_list_train = create_coupon_categorical_variable(coupon_list_train)
+    coupon_clust_def_dict = get_coupon_clust_def_dict()
+    coupon_id_to_cluster_id_dict = get_coupon_id_to_cluster_id_dict()
     
-    coupon_visit_subset = sd.create_data_subset(n_users = 100, min_purchase = 1, max_purchase = 20000, seed_value = 10)
-    df = substitute_coupon_id_with_cluster_id(coupon_visit_subset)
+    n_row = coupon_list_train.shape[0]
+    ind = np.random.choice(n_row)
+    
+    coupon_id = coupon_list_train.COUPON_ID_hash.iat[ind]
+    genre = coupon_list_train.GENRE_NAME.iat[ind]
+    price_cat = coupon_list_train.price_cat.iat[ind]
+    price_rate_cat = coupon_list_train.price_rate_cat.iat[ind]
+    
+    coupon_clust_id = coupon_id_to_cluster_id_dict[coupon_id]
+    coupon_clust_def = coupon_clust_def_dict[coupon_clust_id]
+    
+    
+    print '''Test to check if a given coupon's features and the cluster it is assigned to
+has the same features\n\n'''
+    test_passed = True
+        
+    coupon_features = genre, price_cat, price_rate_cat
+    print "coupon feature     cluster feature"
+    for cou_feature, clust_feature in zip(coupon_features, coupon_clust_def):
+        print cou_feature, clust_feature
+        if cou_feature != clust_feature:
+            test_passed = False
+                
+    if coupon_clust_id > coupon_id:
+        test_passed = False
+    print "____________________________________________________________________"    
+    print "TEST PASSED:", test_passed
+    print "____________________________________________________________________"
+        
+
+        
+    print "\n"   
+    print "Test to check if the substitution of coupon with coupon cluster done correctly"
+    
+    test_passed = True
+    seed_value = random.choice(range(1000000))
+    
+    coupon_visit_subset = sd.create_data_subset(n_users = 1, min_purchase = 1, max_purchase = 100, seed_value = seed_value)
+    coupon_clust_visit = substitute_coupon_id_with_cluster_id(coupon_visit_subset)
+    print "___________________________________________________________________________________"
+    print "coupon_id,   coupon_cluster_id,   assigned_cluster,  is_assignment_ok, is_order_ok"
+    print "__________________________________________________________________________________"
+    for ind in coupon_visit_subset.index:
+        coupon_id = coupon_visit_subset.VIEW_COUPON_ID_hash.at[ind]
+        if coupon_id not in coupon_id_to_cluster_id_dict.keys():
+            continue
+        coupon_clust_id = coupon_id_to_cluster_id_dict[coupon_id]
+        assigned_cluster = coupon_clust_visit.VIEW_COUPON_ID_hash.at[ind]
+        is_cluster_ok = coupon_clust_id == assigned_cluster
+        if not is_cluster_ok:
+            test_passed = False
+        is_order_ok = coupon_clust_id <= coupon_id
+        if not is_order_ok:
+            test_passed = False
+        print coupon_id, coupon_clust_id, assigned_cluster, is_cluster_ok, is_order_ok
+        
+    print "____________________________________________________________________"
+    print "TEST PASSED:", test_passed
+    print "____________________________________________________________________"
+    
+
 
 
