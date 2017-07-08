@@ -48,7 +48,7 @@ reload(dpre)
 
 
 coupon_visit = dl.load_coupon_visit_data()
-coupon_visit_subset = sd.create_data_subset(n_users = 1000, min_purchase = 1, max_purchase = 5, seed_value = 10)
+coupon_visit_subset = sd.create_data_subset(n_users = 5000, min_purchase = 1, max_purchase = 5, seed_value = 10)
 coupon_clust_visit = dpre.substitute_coupon_id_with_cluster_id(coupon_visit_subset)
 train, test = cttd.create_train_test_set(coupon_clust_visit, train_frac = 0.7, seed_value = 10)
 
@@ -56,14 +56,18 @@ train, test = cttd.create_train_test_set(coupon_clust_visit, train_frac = 0.7, s
 colf_users_recommendation = colf.get_collaborative_filtering_recommendation(train, test)
 
 # content filtering
-#conf_recommendation_dict = conf.get_recommendation_for_test_data(test) 
+conf_users_recommendation = conf.get_recommendation_for_test_data(test) 
 
 # popular item recommendation
-#pop_users_recommendation = popi.create_recommendation_based_on_popular_item(train, test)
+popi_users_recommendation = popi.create_recommendation_based_on_popular_item(train, test)
 
 # result analysis
 view_purchase_dict = dpost.item_viewed_purchased(train, test)
-per_accuracy =  dpost.calculate_percentage_accuracy(colf_users_recommendation, view_purchase_dict)
-print per_accuracy
-
+per_accuracy_colf =  dpost.calculate_percentage_accuracy(colf_users_recommendation, view_purchase_dict)
+per_accuracy_conf =  dpost.calculate_percentage_accuracy(conf_users_recommendation, view_purchase_dict)
+per_accuracy_popi =  dpost.calculate_percentage_accuracy(popi_users_recommendation, view_purchase_dict)
+print per_accuracy_colf
+print per_accuracy_popi
+print per_accuracy_popi
+dpost.plot_groupwise_purchase_accuracy(train, test, colf_users_recommendation, view_purchase_dict)
 
