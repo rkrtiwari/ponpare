@@ -11,11 +11,23 @@ from __future__ import division
 import numpy as np
 import pandas as pd
 from sklearn.decomposition import NMF
+import create_training_test_data as cttd
+import subset_data as sd
+import data_preprocessing as dpre
+import random
+import matplotlib.pyplot as plt
+
+###############################################################################
+# setting display options
+###############################################################################
+pd.options.display.max_columns = 100
+pd.set_option('expand_frame_repr', False)
     
 ###############################################################################
 # create rating matrix. Maybe create later. Ensure that you normalize the rating
 # matrix values
 ###############################################################################
+
 def create_rating_matrix(train):
     train1 = train.copy()
     train1['rating'] = 0.00
@@ -69,5 +81,55 @@ def get_collaborative_filtering_recommendation(train, test):
     final_rating_matrix = create_final_rating_matrix(rating_matrix, n_comp = 5)
     test_users_recommendation = get_recommendation_for_test_data(test, final_rating_matrix)
     return test_users_recommendation
+    
+if __name__ == '__main__':
+    seed_value = random.choice(range(9999))
+    coupon_visit_subset = sd.create_data_subset(n_users = 5, min_purchase = 1, max_purchase = 10, seed_value = seed_value)
+    coupon_clust_visit = dpre.substitute_coupon_id_with_cluster_id(coupon_visit_subset)
+    train, test = cttd.create_train_test_set(coupon_clust_visit, train_frac = 0.7, seed_value = 10)
+    rating_matrix = create_rating_matrix(train)
+    final_rating_matrix = create_final_rating_matrix(rating_matrix, n_comp = 5)
+    rating_matrix_val = rating_matrix.values
+    final_rating_matrix_val = final_rating_matrix.values
+    print "Initial Rating Matrix"
+    plt.matshow(rating_matrix_val)
+    plt.show()
+    print "Final Rating Matrix"
+    plt.matshow(final_rating_matrix_val)
+    plt.show()
+    test_users_recommendation = get_recommendation_for_test_data(test, final_rating_matrix)
+    test_users_recommendation_using_main_function = get_collaborative_filtering_recommendation(train, test)
+    test_users = test.USER_ID_hash.unique().tolist()
+    for user in test_users:
+        if user not in final_rating_matrix.index:
+            continue           
+        ratings = final_rating_matrix.loc[user].sort_values(ascending = False)
+        plt.plot(ratings.values[:10])
+        plt.show()
+        rec1 = ratings[:10]
+        rec2 = test_users_recommendation[user]
+        rec3 = test_users_recommendation_using_main_function[user]
+        rec_dict = {"rec2": pd.Series(rec2), "rec3": pd.Series(rec3), "rec1": pd.Series(rec1.index), "rec1_values": pd.Series(rec1.values)}
+        df = pd.DataFrame(rec_dict)
+        print df
+        if rec1.index.tolist() == rec2:
+            print "____________________________________________________________"
+            print "REC1 and REC2 ARE THE SAME "
+            print "____________________________________________________________"
+        else:
+            print "PROBLEM WITH THE RECOMMENDATION. See REC1 and REC2"
+            
+        if rec2 == rec3:
+            print "____________________________________________________________"
+            print "REC2 and REC3 ARE THE SAME"
+            print "____________________________________________________________"
+        else:
+            print "PROBLEM WITH THE RECOMMENDATION. See REC2 and REC3"
+            
+        
+        
+        
+        
+    
     
     
