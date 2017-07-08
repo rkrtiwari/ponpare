@@ -50,12 +50,12 @@ def create_user_vector_dict(user_list):
     return user_content_vector_dict
 
 def get_user_content_vector_dict():
-    if os.path.isfile('user_content_vector_dict.pkl'):
-        user_content_vector_dict = pickle.load(open('user_content_vector_dict.pkl','rb'))
+    if os.path.isfile('intermediate_result/user_content_vector_dict.pkl'):
+        user_content_vector_dict = pickle.load(open('intermediate_result/user_content_vector_dict.pkl','rb'))
     else:
         user_list = dl.load_user_data()
         user_content_vector_dict = create_user_vector_dict(user_list)
-        pickle.dump(user_content_vector_dict, open('user_content_vector_dict.pkl', 'wb '))
+        pickle.dump(user_content_vector_dict, open('intermediate_result/user_content_vector_dict.pkl', 'wb '))
     return user_content_vector_dict
 
 
@@ -215,11 +215,11 @@ def create_recommendation_for_test_data(test):
     
 
 def get_recommendation_for_test_data(test):
-    if os.path.isfile('conf_recommendation_dict.pkl'):
-        conf_recommendation_dict = pickle.load(open('conf_recommendation_dict.pkl','rb'))
+    if os.path.isfile('intermediate_result/conf_recommendation_dict.pkl'):
+        conf_recommendation_dict = pickle.load(open('intermediate_result/conf_recommendation_dict.pkl','rb'))
     else:
         conf_recommendation_dict = create_recommendation_for_test_data(test)
-        pickle.dump(conf_recommendation_dict, open('conf_recommendation_dict.pkl', 'wb '))
+        pickle.dump(conf_recommendation_dict, open('intermediate_result/conf_recommendation_dict.pkl', 'wb '))
    
     return conf_recommendation_dict
         
