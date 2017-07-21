@@ -16,9 +16,17 @@ class Content_Filtering(object):
 
     def start_process(self):
         print 'Content Filter processing started...'
-        self.get_user_content_vector()
-        self.get_coupon_content_vector()
-        self.store_recommendations_in_db()
+        ui_df = self.load_user_data()
+        user_content_vector_dict = self.create_user_vector_dict(ui_df)
+        cci_df = self.load_coupon_cluster_info_data()
+        up_df = self.load_user_purchased_coupon_data()
+        cp_df = self.get_conditional_probability(up_df, ui_df, cci_df)
+        coupon_content_vector_dict = self.create_coupon_content_vector_dict(cp_df, cci_df)
+        
+        all_users = ui_df.USER_ID_hash.tolist()
+        user_list = np.random.choice(all_users, 200)
+        similarity_matrix = self.create_similarity_matrix(user_list, user_content_vector_dict, coupon_content_vector_dict)
+        self.storeSimilarityMatrixInDB(similarity_matrix)
         print ' Content Filter processing finished...'
 
 # user content vector creation         
@@ -41,15 +49,15 @@ class Content_Filtering(object):
         u_v = np.concatenate([s_v,a_v])
         return u_v
 
-    def create_user_vector_dict(self, u_df):    
+    def create_user_vector_dict(self, ui_df):    
        
         user_content_vector_dict = {}
-        n_users, n_features = u_df.shape
+        n_users, n_features = ui_df.shape
         
         for i in range(n_users):
-            user_id = u_df.USER_ID_hash.iat[i]
-            gender = u_df.SEX_ID.iat[i]
-            age = u_df.AGE_CATEGORY.iat[i]
+            user_id = ui_df.USER_ID_hash.iat[i]
+            gender = ui_df.SEX_ID.iat[i]
+            age = ui_df.AGE_CATEGORY.iat[i]
             user_vector = self.get_user_content_vector(age, gender)
             user_content_vector_dict[user_id] = user_vector
         return user_content_vector_dict
@@ -177,18 +185,19 @@ class Content_Filtering(object):
 
 if __name__ == '__main__':
     conF = Content_Filtering('ponpareDB') 
-    ui_df = conF.load_user_data()
-    cci_df = conF.load_coupon_cluster_info_data()
-    up_df = conF.load_user_purchased_coupon_data()
-    user_content_vector_dict = conF.create_user_vector_dict(ui_df)
-    cp_df = conF.get_conditional_probability(up_df, ui_df, cci_df)
-    coupon_content_vector_dict = conF.create_coupon_content_vector_dict(cp_df, cci_df)
-    all_users = ui_df.USER_ID_hash.tolist()
-    user_list = np.random.choice(all_users, 20)
-    similarity_matrix = conF.create_similarity_matrix(user_list, user_content_vector_dict, coupon_content_vector_dict)
-    conF.storeSimilarityMatrixInDB(similarity_matrix)
-    user_id = user_list[0]
-    df = conF.get_user_recommendation(user_id)
+    conF.start_process()
+#    ui_df = conF.load_user_data()
+#    cci_df = conF.load_coupon_cluster_info_data()
+#    up_df = conF.load_user_purchased_coupon_data()
+#    user_content_vector_dict = conF.create_user_vector_dict(ui_df)
+#    cp_df = conF.get_conditional_probability(up_df, ui_df, cci_df)
+#    coupon_content_vector_dict = conF.create_coupon_content_vector_dict(cp_df, cci_df)
+#    all_users = ui_df.USER_ID_hash.tolist()
+#    user_list = np.random.choice(all_users, 20)
+#    similarity_matrix = conF.create_similarity_matrix(user_list, user_content_vector_dict, coupon_content_vector_dict)
+#    conF.storeSimilarityMatrixInDB(similarity_matrix)
+#    user_id = user_list[0]
+#    df = conF.get_user_recommendation(user_id)
     
     
     
