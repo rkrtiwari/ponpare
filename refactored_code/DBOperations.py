@@ -1,7 +1,8 @@
-#!/usr/bin/python
+# -*- coding: utf-8 -*-
 """
-Date: Jun 09 2017
-@author: rsugumar
+Created on Wed Jul 19 15:57:03 2017
+
+@author: tiwarir
 """
 
 import sqlite3
@@ -80,3 +81,18 @@ class DBOperations(object):
         column_names = self.getColumnNames(table_name)
         records_df = pd.DataFrame(columns=column_names, data=loaded_data)
         return records_df
+
+    def conditional_selection(self, table_name, column_name, value):
+        query = 'SELECT * FROM ' + table_name + ' WHERE ' + column_name + '=' + str(value)
+        df = pd.read_sql_query(query, self.conn)
+        return df
+
+
+
+###############################################################################
+if __name__ == '__main__':
+    dbo = DBOperations('ponpareDB')
+    coupon_clust = dbo.conditional_selection('CouponClustInfo', 'PRICE_CATEGORY','"catalog_price1"')
+    user_activity = dbo.conditional_selection('UserCouponActivityInfo', 'PURCHASE_FLG', 1)
+    
+
