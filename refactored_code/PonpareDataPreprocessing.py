@@ -161,6 +161,7 @@ class PonpareDataPreprocessing(object):
             return x
 
         pruned_coupon_cluster_visit = pruned_coupon_visit.groupby('VIEW_COUPON_ID_hash').apply(lambda x: replaceWithClusterId(x))
+        pruned_coupon_cluster_visit = pruned_coupon_cluster_visit.rename(columns={"VIEW_COUPON_ID_hash": "COUPON_ID_old", "CLUSTER_ID": "COUPON_ID"})
         return pruned_coupon_cluster_visit        
     
     def storeUserCouponActivityInfo(self, pruned_coupon_cluster_visit):

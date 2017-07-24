@@ -83,7 +83,7 @@ class Content_Filtering(object):
         print "calculating conditional probability"
         
         int_df = up_df.merge(ui_df, on = 'USER_ID_hash')
-        coupon_purchase_data = int_df.merge(cci_df, on = 'CLUSTER_ID')
+        coupon_purchase_data = int_df.merge(cci_df, left_on = 'COUPON_ID', right_on = 'CLUSTER_ID')
         coupon_purchase_data = coupon_purchase_data.dropna(axis = 0, how = 'any')
         
         c_features = ["GENRE_NAME", "PRICE_RATE_CATEGORY", "PRICE_CATEGORY"]
@@ -163,26 +163,14 @@ class Content_Filtering(object):
         return similarity_matrix
 
     def storeSimilarityMatrixInDB(self, similarity_matrix):
-        similarity_matrix['index1'] = similarity_matrix.index
+        similarity_matrix['user_id'] = similarity_matrix.index
         print 'Storing Similarity Matrix to DB:', self.db_name,'Started...'
         with DBOps(self.db_name) as simMatDbOps:
             similarity_matrix.to_sql('SimilarityMatrix', simMatDbOps.getConnection(), index = False, if_exists = 'replace')
         print ' Storing Similarity Matrix to DB:', self.db_name,'Finished...'
         
-    def get_user_recommendation(self, user_id):
-        table_name = 'SimilarityMatrix'
-        column_name = 'index1'
-#        query = 'SELECT * FROM ' + table_name + ' WHERE ' + column_name  + '=\"' + user_id   + '\"'
-        query = 'SELECT * FROM ' + table_name + ' WHERE ' + column_name  + '=\'' + user_id + '\''
-        with DBOps(self.db_name) as simMatDbOps:
-            df = pd.read_sql_query(query, simMatDbOps.getConnection())
-        df.sort_values(by = 0, ascending  = False, axis = 1, inplace = True)
-        return df.iloc[:,:10]
-
-
-
-
-
+    
+###############################################################################
 if __name__ == '__main__':
     conF = Content_Filtering('ponpareDB') 
     conF.start_process()

@@ -40,8 +40,8 @@ class Collaborative_Filtering(object):
         ind_purchase = train1.PURCHASE_FLG == 1
         train1.loc[ind_purchase, 'RATING'] = 1
 
-        train2 = train1.groupby(by = ['USER_ID_hash', 'CLUSTER_ID'], as_index = False).sum()
-        rating_matrix = train2.pivot(index = 'USER_ID_hash', columns = 'CLUSTER_ID', values = 'RATING')
+        train2 = train1.groupby(by = ['USER_ID_hash', 'COUPON_ID'], as_index = False).sum()
+        rating_matrix = train2.pivot(index = 'USER_ID_hash', columns = 'COUPON_ID', values = 'RATING')
         rating_matrix = rating_matrix.fillna(value = 0)
 
         print ' Creating Intermediate Rating Matrix.. Finished...'
@@ -56,6 +56,8 @@ class Collaborative_Filtering(object):
         R_full = np.dot(W,H)
         final_rating_matrix = pd.DataFrame(R_full, index = intermediate_rating_matrix.index,
                                    columns = intermediate_rating_matrix.columns)
+        user_ids = intermediate_rating_matrix.index.tolist()
+        final_rating_matrix['user_id'] = user_ids 
         print ' Creating Resultant Rating Matrix.. Finished...'
         return final_rating_matrix
 
@@ -67,13 +69,12 @@ class Collaborative_Filtering(object):
             return uca_df
 
     def store_resultant_matrix_in_db(self, matrix_df):
-        print 'Storing Resultant Rating Matrix to DB.. Started...'
+        print 'Storing Resultant Rating Matrix to DB.. Started...'        
         with DBOps(self.db_name) as matrix_DbOps:
             matrix_df.to_sql('ResultantRatingMatrix', matrix_DbOps.getConnection(), index = False, if_exists = 'replace')
         print ' Storing Resultant Rating Matrix to DB.. Finished...'
 
-
-
+###############################################################################
 if __name__ == '__main__':
     colF = Collaborative_Filtering('ponpareDB')
     colF.start_process()
