@@ -15,46 +15,74 @@ class Get_Recommendation(object):
         self.user_id = user_id
         
     def start_process(self):
-        recommendations = self.get_user_recommendation()
-        return recommendations
-        
-        
-    def get_user_recommendation(self):
-        column_name  = 'user_id'
-        
         if self.recommendation_type == 'collaborative':
-            table_name = 'ResultantRatingMatrix'
-            query = 'SELECT * FROM ' + table_name + ' WHERE ' + column_name  + '=\'' + self.user_id + '\''
-            with DBOps(self.db_name) as simMatDbOps:
-                df = pd.read_sql_query(query, simMatDbOps.getConnection())
-                df = df.drop('user_id', axis = 1)
-            df.sort_values(by = 0, ascending  = False, axis = 1, inplace = True)
-            
-        elif self.recommendation_type == 'content':            
-            table_name = 'SimilarityMatrix'
-            query = 'SELECT * FROM ' + table_name + ' WHERE ' + column_name  + '=\'' + self.user_id + '\''
-            with DBOps(self.db_name) as simMatDbOps:
-                df = pd.read_sql_query(query, simMatDbOps.getConnection())
-                df = df.drop('user_id', axis = 1)
-            df.sort_values(by = 0, ascending  = False, axis = 1, inplace = True)
-            
-        else:
-            similarity_table = 'SimilarityMatrix'
-            rating_table = 'ResultantRatingMatrix'
-            with DBOps(self.db_name) as DbOps:
-                query_similarity = 'SELECT * FROM ' + similarity_table + ' WHERE ' + column_name  + '=\'' + self.user_id + '\''
-                df_similarity = pd.read_sql_query(query_similarity, DbOps.getConnection())
-                query_rating = 'SELECT * FROM ' + rating_table + ' WHERE ' + column_name  + '=\'' + self.user_id + '\''
-                df_rating = pd.read_sql_query(query_rating, DbOps.getConnection())
-            df = df_similarity + df_rating
-            
-        return df.columns[:10].tolist()
+            recommendation = self.get_collaborative_recommendation()
+            recommendation = recommendation.T
+        if self.recommendation_type == 'content':
+            recommendation = self.get_content_filtering_recommendation()
+            recommendation = recommendation.T
+        if self.recommendation_type == 'hybrid':
+            recommendation = self.get_hybrid_filtering_recommendation()
+        recommendation.columns = ['score']
+        return recommendation.index[:10].tolist()
+#        return recommendation.iloc[:10,]
+    
+
+    
+    def get_collaborative_recommendation(self):
+        column_name  = 'user_id'
+        table_name = 'ResultantRatingMatrix'
+        query = 'SELECT * FROM ' + table_name + ' WHERE ' + column_name  + '=\'' + self.user_id + '\''
+        with DBOps(self.db_name) as simMatDbOps:
+            df_col = pd.read_sql_query(query, simMatDbOps.getConnection())
+            df_col = df_col.drop('user_id', axis = 1)
+        df_col.sort_values(by = 0, ascending  = False, axis = 1, inplace = True)
+        return df_col
+    
+    def get_content_filtering_recommendation(self):
+        column_name  = 'user_id'
+        table_name = 'SimilarityMatrix'
+        query = 'SELECT * FROM ' + table_name + ' WHERE ' + column_name  + '=\'' + self.user_id + '\''
+        with DBOps(self.db_name) as simMatDbOps:
+            df_con = pd.read_sql_query(query, simMatDbOps.getConnection())
+            df_con = df_con.drop('user_id', axis = 1)
+        df_con.sort_values(by = 0, ascending  = False, axis = 1, inplace = True)
+        return df_con
+        
+    def get_hybrid_filtering_recommendation(self):
+        col_recom = self.get_collaborative_recommendation()
+        col_recom = col_recom.T
+        col_min = col_recom.min()
+        col_max = col_recom.max()
+        col_recom = (col_recom - col_min)/(col_max - col_min)
+        
+        con_recom = self.get_content_filtering_recommendation()
+        con_recom = con_recom.T
+        con_min = con_recom.min()
+        con_max = con_recom.max()
+        con_recom = (con_recom - con_min)/(con_max - con_min)
+        
+        recom = col_recom + con_recom
+        recom.sort_values(by = 0, ascending = False, inplace = True)
+        return recom
+        
 
 ###############################################################################        
-if __name__ == '__main__' :
-    getRecom = Get_Recommendation('ponpareDB', 'collaborative', 'c6f70990bb772ec55211b353389421b2')
-    print "Collaborative Filtering: ", getRecom.start_process()
-#    getRecom = Get_Recommendation('ponpareDB', 'content', '684ca5035f10f1e156803a3fd245b5c4')
-#    print "Content Filtering: ", getRecom.start_process()
+if __name__ == '__main__' :    
+    dbname = 'ponpareDB'
+    user_id = '002383753c1e5d6305c8aff6f89e26d6'
+    
+    getRecom = Get_Recommendation(dbname, 'collaborative', user_id)
+    df_col = getRecom.start_process()
+    
+    getRecom = Get_Recommendation(dbname, 'content', user_id)
+    df_con = getRecom.start_process()
+    
+    getRecom = Get_Recommendation(dbname, 'hybrid', user_id)
+    df_hybrid = getRecom.start_process()
+
+
+
+    
         
         
